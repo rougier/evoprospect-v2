@@ -1,0 +1,6 @@
+data.csv filter=lfs diff=lfs merge=lfs -text
+elo-scores.xlsx filter=lfs diff=lfs merge=lfs -text
+RSTB-processed.csv filter=lfs diff=lfs merge=lfs -text
+RSTB.csv filter=lfs diff=lfs merge=lfs -text
+RSTB.xlsx filter=lfs diff=lfs merge=lfs -text
+data-processed.csv filter=lfs diff=lfs merge=lfs -text
