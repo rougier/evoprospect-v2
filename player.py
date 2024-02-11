@@ -104,7 +104,7 @@ class Player:
         default = [p.default for p in cls.parameters.values()]
         bounds = [p.bounds for p in cls.parameters.values()]
 
-        print("Fitting %s... " % cls.__name__, end="")
+        # print("Fitting %s... " % cls.__name__, end="")
         res = minimize(cls.log_likelihood,
                        x0=default,
                        bounds=bounds,
@@ -115,11 +115,9 @@ class Player:
                        args = (trials, responses, kwargs))
 
         if res.success:
-            print("success")
             return cls(*res.x)
         else:
-            print("failed")
-            return cls()
+            return None
             
 
 
@@ -144,7 +142,7 @@ class SigmoidPlayer(Player):
     """
     shortname = "SG"
     parameters = Player.parameters | {
-        "x0": Parameter(0.0, (-2.0, +2.0)),
+        "x0": Parameter(0.0, (-3.0, +3.0)),
         "mu": Parameter(5.0, ( 0.1, 10.0))
     }
 
@@ -295,12 +293,12 @@ def evaluate(players, trials, responses, per_trial=True):
         
 if __name__ == "__main__":
     import warnings 
-    from lottery import L0, generate_trials
+    from lottery import *
 
     warnings.filterwarnings('ignore')
-    np.random.seed(123)
+    # np.random.seed(123)
     
-    # We create a random player and make it play lottery 0
+    # We create a player and make it play lottery 0
     # player = RandomPlayer.random(bias=0)
     # player = SigmoidPlayer.random()
     player = ProspectPlayerP1.random()
@@ -322,7 +320,6 @@ if __name__ == "__main__":
     tk_fit = ProspectPlayerTK.fit(trials, responses)
     print()
 
-
     players = { "(%s)" % player.shortname : player,
                 " RD " : rd_fit,
                 " SG " : sg_fit,
@@ -337,12 +334,12 @@ if __name__ == "__main__":
     print()
 
     # We evaluate players, including the original one
-    print(color.BOLD + "Evaluation per trial" + color.END)
+    print(color.BOLD + "Evaluation (per trials)" + color.END)
     evaluate(players, trials, responses)
 
-    print()
-    print(color.BOLD + "Evaluation per lottery type" + color.END)
-    # We evaluate players, including the original one
-    evaluate(players, trials, responses, True)
+    # print()
+    # print(color.BOLD + "Evaluation per lottery type" + color.END)
+    # # We evaluate players, including the original one
+    # evaluate(players, trials, responses, True)
 
 
