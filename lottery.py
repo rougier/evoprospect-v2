@@ -45,9 +45,7 @@ L6 = [(v1,p1,v2,p2) for (v1,p1),(v2,p2) in L0
 L7 = [(v1,p1,v2,p2) for (v1,p1),(v2,p2) in L0
       if (v1 < v2) and (v2 < 0) and (p1<p2)]
 
-lotteries = { "L0": L0, "L1": L1, "L2": L2,
-              "L3": L3, "L4": L4, "L5": L5,
-              "L6": L6, "L7": L7 }
+lotteries = [L0, L1, L2, L3, L4, L5, L6, L7]
 
 def generate_trials(n, lottery):
     lottery = np.asarray(lottery).reshape(-1,4)
