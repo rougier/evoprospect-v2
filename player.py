@@ -1,6 +1,6 @@
 import numpy as np
 from collections import namedtuple
-from prettytable import PrettyTable
+from prettytable import PrettyTable, SINGLE_BORDER
 from scipy.optimize import minimize
 from lottery import lotteries, generate_trials
 
@@ -143,7 +143,7 @@ class RandomPlayer(Player):
     Random player that choose first or second option randomly
     (modulo bias)
     """
-    shortname = "RD"
+    shortname = "RND"
     parameters = Player.parameters | {
         "bias": Parameter(0.0, (-0.5, +0.5))
     }
@@ -260,7 +260,8 @@ class ProspectPlayerTK(ProspectPlayer):
 def show(players):
     "Display players parameters side by side"
 
-    x = PrettyTable(border=False, align="l")
+    x = PrettyTable(border=True, align="l")
+    x.set_style(SINGLE_BORDER)
     x.field_names = ([bold("Parameter")] +
                      [bold("(%s)" % players[0].shortname)] + 
                      [bold(p.shortname) for p in players[1:]])
@@ -281,8 +282,9 @@ def show(players):
 
 
 def evaluate(players, lotteries):
-
-    x = PrettyTable(border=False, align="l")
+	
+    x = PrettyTable(border=True, align="l")
+    x.set_style(SINGLE_BORDER)
     x.field_names = ([bold("Lottery")] +
                      [bold("(%s)" % players[0].shortname)] + 
                      [bold(p.shortname) for p in players[1:]])
@@ -304,24 +306,6 @@ def evaluate(players, lotteries):
                 R[i] = "%.3f" % R[i]
         x.add_row([name] + R)
     print(x)
-
-# def evaluate(players, trials, responses):
-#     """
-#     Evaluate players on all lotteries and reports accuracy per
-#     trial (default) or per_lottery
-#     """
-
-#     x = PrettyTable(border=False, align="l")
-#     x.field_names = ["Lottery"] + list(players.keys())
-#     for name, lottery in lotteries.items():
-#         trials = generate_trials(10_000, lottery)
-#         R0 = player.play(trials)
-#         row = [1 - ((abs(R0-R).sum())/len(R0))
-#                for R in [p.play(trials) for p in players.values()]]
-# rowmax = np.max(row)
-#         x.add_row([name] + ["%.3f" % r for r in row])
-
-#     print(x)
         
 
         
@@ -339,6 +323,7 @@ if __name__ == "__main__":
     trials = generate_trials(10_000, L0)
     responses = player.play(trials)
 
+	# We try to fit each player against player
     players = [ RandomPlayer.fit(trials, responses),
                 SigmoidPlayer.fit(trials, responses),
                 ProspectPlayerP1.fit(trials, responses),
@@ -356,39 +341,4 @@ if __name__ == "__main__":
     # print("Estimated bias: %.3f" % (responses.sum()/len(responses)))
     # print()
     
-    # We try to fit all kind of players to the actual player
-    # based on its responses
-
-    
-    # rd_fit = RandomPlayer.fit(trials, responses)
-    # sg_fit = SigmoidPlayer.fit(trials, responses)
-    # p1_fit = ProspectPlayerP1.fit(trials, responses)
-    # p2_fit = ProspectPlayerP2.fit(trials, responses)
-    # ge_fit = ProspectPlayerGE.fit(trials, responses)
-    # tk_fit = ProspectPlayerTK.fit(trials, responses)
-    # print()
-
-    # players = { "(%s)" % player.shortname : player,
-    #             "RD" : rd_fit,
-    #             "SG" : sg_fit,
-    #             "P1" : p1_fit,
-    #             "P2" : p2_fit,
-    #             "GE" : ge_fit,
-    #             "TK" : tk_fit }
-
-    # # We compare players parameters
-    # print(color.BOLD + "Comparison of fitted players" + color.END)
-    # show(players)
-    # print()
-
-    # We evaluate players, including the original one
-    # print(color.BOLD + "Evaluation (per trials)" + color.END)
-    # evaluate([player] + players, lotteries)
-
-
-    # print()
-    # print(color.BOLD + "Evaluation per lottery type" + color.END)
-    # # We evaluate players, including the original one
-    # evaluate(players, trials, responses, True)
-
 
