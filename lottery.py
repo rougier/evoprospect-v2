@@ -50,10 +50,12 @@ lotteries = { "L0": L0, "L1": L1, "L2": L2,
               "L6": L6, "L7": L7 }
 
 def generate_trials(n, lottery):
-    lottery = np.asarray(lottery).reshape(-1,2,2)
+    lottery = np.asarray(lottery).reshape(-1,4)
     L = lottery[np.random.randint(0, len(lottery), n)]
     swap = np.random.randint(0, 2, n)
     for index in range(n):
-        if swap[index]:  L[index, [0,1]] = L[index, [1,0]]        
-    return L.reshape(-1,4)
+        v1,p1,v2,p2 = L[index]        
+        if swap[index]:
+            L[index] = v2,p2,v1,p1
+    return L
 

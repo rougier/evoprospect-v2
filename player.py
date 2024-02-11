@@ -5,16 +5,24 @@ from lottery import lotteries, generate_trials
 
 Parameter = namedtuple('Parameter', ['default', 'bounds'])
 
-def sigmoid(X, x0=0.0, mu=1.0):
-    return 1 / (1 + np.exp(-mu * (X - x0)))
+class color:
+   PURPLE = '\033[95m'
+   CYAN = '\033[96m'
+   DARKCYAN = '\033[36m'
+   BLUE = '\033[94m'
+   GREEN = '\033[92m'
+   YELLOW = '\033[93m'
+   RED = '\033[91m'
+   BOLD = '\033[1m'
+   UNDERLINE = '\033[4m'
+   END = '\033[0m'
 
 class Player:
     """
     Generic player
     """
     shortname = "GP"
-    parameters = {
-        "bias": Parameter(0.0, (-1.0, +1.0)) }
+    parameters = { }
     
     def __init__(self, *args, **kwargs):
         keys    = list(type(self).parameters.keys())
@@ -44,11 +52,11 @@ class Player:
             attrs=", ".join("{}={:.3f}".format(k, v)
                            for k, v in self.parameters.items()))
 
-    def accept(self, P):
-        # Add bias in favor of first or second option
-        vmin = max(self.bias,     0)
-        vmax = min(1 + self.bias, 1)
-        return vmin + (vmax - vmin)*P
+#    def accept(self, P):
+#        # Add bias in favor of first or second option
+#        vmin = max(self.bias,     0)
+#        vmax = min(1 + self.bias, 1)
+#        return vmin + (vmax - vmin)*P
     
     def play(self, trials):
         
@@ -121,10 +129,13 @@ class RandomPlayer(Player):
     (modulo bias)
     """
     shortname = "RD"
-           
+    parameters = Player.parameters | {
+        "bias": Parameter(0.0, (-0.5, +0.5))
+    }
+                   
     def accept(self, trials):
-         P = 0.5 * np.ones(len(trials))
-         return Player.accept(self, P)
+         P = (0.5 + self.bias) * np.ones(len(trials))
+         return P # Player.accept(self, P)
     
 class SigmoidPlayer(Player):
     """
@@ -133,15 +144,28 @@ class SigmoidPlayer(Player):
     """
     shortname = "SG"
     parameters = Player.parameters | {
-        "x0": Parameter(0.0, (-5.0, +5.0)),
+        "x0": Parameter(0.0, (-2.0, +2.0)),
         "mu": Parameter(5.0, ( 0.1, 10.0))
     }
 
+    def sigmoid(self, X, x0=0.0, mu=1.0):
+        return 1 / (1 + np.exp(-mu*(X - x0)))
+
+    def subjective_utility(self, V):
+        return V
+
+    def subjective_probability(self, P):
+        return P
+    
     def accept(self, trials):
         V1, P1 = trials[:,0], trials[:,1]
         V2, P2 = trials[:,2], trials[:,3]
-        P = sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
-        return Player.accept(self, P)
+        V1 = self.subjective_utility(V1)
+        P1 = self.subjective_probability(P1)
+        V2 = self.subjective_utility(V2)
+        P2 = self.subjective_probability(P2)
+        P = self.sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
+        return P # Player.accept(self, P)
 
     
 class ProspectPlayer(SigmoidPlayer):
@@ -162,16 +186,6 @@ class ProspectPlayer(SigmoidPlayer):
 
     def subjective_probability(self, P):
         raise NotImplementedError
-
-    def accept(self, trials):
-        V1, P1 = trials[:,0], trials[:,1]
-        V2, P2 = trials[:,2], trials[:,3]
-        V1 = self.subjective_utility(V1)
-        P1 = self.subjective_probability(P1)
-        V2 = self.subjective_utility(V2)
-        P2 = self.subjective_probability(P2)
-        P = sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
-        return Player.accept(self, P)
 
     
 class ProspectPlayerP1(ProspectPlayer):
@@ -262,7 +276,7 @@ def evaluate(players, trials, responses, per_trial=True):
     for pname in players.keys():
         s = s + "%-5s  " % pname
     print(s)
-    print("----------------------------------------------")
+    print("----" + "-------"*len(players))
     
     for name, L in lotteries.items():
         trials = generate_trials(10_000, L)
@@ -285,14 +299,19 @@ if __name__ == "__main__":
 
     warnings.filterwarnings('ignore')
     np.random.seed(123)
-    print("Usage example")
     
     # We create a random player and make it play lottery 0
-    player = SigmoidPlayer(bias=0) #.random()
-    # player = ProspectPlayerP2.random()
+    # player = RandomPlayer.random(bias=0)
+    # player = SigmoidPlayer.random()
+    player = ProspectPlayerP1.random()
     trials = generate_trials(10_000, L0)
     responses = player.play(trials)
 
+    # Bias estimated from responses (should correspond to player bias)
+    # print(player)
+    # print("Estimated bias: %.3f" % (responses.sum()/len(responses)))
+    # print()
+    
     # We try to fit all kind of players to the actual player
     # based on its responses
     rd_fit = RandomPlayer.fit(trials, responses)
@@ -313,10 +332,17 @@ if __name__ == "__main__":
                 " TK " : tk_fit }
 
     # We compare players parameters
+    print(color.BOLD + "Comparison of fitted players" + color.END)
     show(players)
     print()
 
     # We evaluate players, including the original one
+    print(color.BOLD + "Evaluation per trial" + color.END)
     evaluate(players, trials, responses)
+
+    print()
+    print(color.BOLD + "Evaluation per lottery type" + color.END)
+    # We evaluate players, including the original one
+    evaluate(players, trials, responses, True)
 
 
