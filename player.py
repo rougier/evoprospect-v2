@@ -39,7 +39,7 @@ class color:
 def bold(text): return color.BOLD + color.BLACK + text + color.END
 def red(text): return color.RED + text + color.END
 
-	
+    
 class Player:
     """
     Generic player
@@ -130,26 +130,26 @@ class Player:
                        options = {"maxiter": 1000,
                                  "disp" : False },
                        args = (trials, responses, kwargs))
-
-        if res.success:
-            return cls(*res.x)
-        else:
-            return None
-            
-
+        valid = res.success
+        player = cls(*res.x)
+        player.valid = valid
+        if not valid:
+            player.shortname = "!" + player.shortname        
+        return player
 
 class RandomPlayer(Player):
     """
-    Random player that choose first or second option randomly
-    (modulo bias)
+    Random player that choose first or second option randomly but
+    with bias x0. Bias bounds are -3/+3 to be similar to sigmoid
+    player.
     """
     shortname = "RND"
     parameters = Player.parameters | {
-        "bias": Parameter(0.0, (-0.5, +0.5))
+        "x0": Parameter(0.0, (-3.0, +3.0))
     }
                    
     def accept(self, trials):
-         P = (0.5 + self.bias) * np.ones(len(trials))
+         P = (0.5 - self.x0/3) * np.ones(len(trials))
          return P # Player.accept(self, P)
     
 class SigmoidPlayer(Player):
@@ -169,24 +169,23 @@ class SigmoidPlayer(Player):
     def subjective_utility(self, V):
         return V
 
-    def subjective_probability(self, P):
+    def subjective_probability(self, P, V):
         return P
     
     def accept(self, trials):
         V1, P1 = trials[:,0], trials[:,1]
         V2, P2 = trials[:,2], trials[:,3]
         V1 = self.subjective_utility(V1)
-        P1 = self.subjective_probability(P1)
+        P1 = self.subjective_probability(P1,V1)
         V2 = self.subjective_utility(V2)
-        P2 = self.subjective_probability(P2)
+        P2 = self.subjective_probability(P2,V2)
         P = self.sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
         return P # Player.accept(self, P)
 
     
 class ProspectPlayer(SigmoidPlayer):
     """
-    Generic prospect player with unspecified subjective utility
-    and probability.
+    Generic prospect player with unspecified subjective probability.
     """
     shortname = "PT"
     parameters = SigmoidPlayer.parameters | {
@@ -199,10 +198,22 @@ class ProspectPlayer(SigmoidPlayer):
                         np.power(np.abs(V), self.rho),
                         -self.lambda_ * np.power(np.abs(V), self.rho))
 
-    def subjective_probability(self, P):
-        raise NotImplementedError
 
-    
+class ProspectPlayerXX(SigmoidPlayer):
+    """
+    Experimental prospect player.
+    """
+    shortname = "XX"
+    parameters = SigmoidPlayer.parameters | {
+
+    }
+
+    def subjective_utility(self, V):
+        return np.where(V > 0, V, 2*V)
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0, P**1.5, P**2)
+
 class ProspectPlayerP1(ProspectPlayer):
     """
     """
@@ -211,7 +222,7 @@ class ProspectPlayerP1(ProspectPlayer):
         "alpha": Parameter(1.0, (0.1, 3.0)),
     }
 
-    def subjective_probability(self, P):
+    def subjective_probability(self, P, V):
         return np.exp(- np.power((-np.log(P)), self.alpha))
 
 
@@ -224,7 +235,7 @@ class ProspectPlayerP2(ProspectPlayer):
         "delta": Parameter(1.0, (0.1, 3.0)),
     }
 
-    def subjective_probability(self, P):
+    def subjective_probability(self, P, V):
         return np.exp(-self.delta*np.power((-np.log(P)), self.alpha))
 
     
@@ -238,7 +249,7 @@ class ProspectPlayerGE(ProspectPlayer):
         "gamma": Parameter(1.0, (0.1, 3.0)),
     }
 
-    def subjective_probability(self, P):
+    def subjective_probability(self, P, V):
         return (self.delta*np.power(P,self.alpha) /
            (self.delta *np.power(P,self.gamma) + np.power(1-P, self.alpha)))
 
@@ -251,7 +262,7 @@ class ProspectPlayerTK(ProspectPlayer):
         "alpha": Parameter(1.0, (0.1, 3.0)),
     }
 
-    def subjective_probability(self, P):
+    def subjective_probability(self, P, V):
         return (np.power(P, self.alpha) /
                 np.power((np.power(P, self.alpha)
                           + np.power(1-P, self.alpha)), 1/self.alpha))
@@ -262,9 +273,13 @@ def show(players):
 
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
+    
+    shortnames = [p.shortname for p in players]
+    if shortnames[0] in shortnames[1:]:
+        shortnames[0] = "(%s)" % shortnames[0]
+    
     x.field_names = ([bold("Parameter")] +
-                     [bold("(%s)" % players[0].shortname)] + 
-                     [bold(p.shortname) for p in players[1:]])
+                     [bold(s) for s in shortnames])
     names = []
     for player in players:
         for key in player.parameters.keys():
@@ -282,7 +297,7 @@ def show(players):
 
 
 def evaluate(players, lotteries):
-	
+    
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
     x.field_names = ([bold("Lottery")] +
@@ -323,7 +338,7 @@ if __name__ == "__main__":
     trials = generate_trials(10_000, L0)
     responses = player.play(trials)
 
-	# We try to fit each player against player
+    # We try to fit each player against player
     players = [ RandomPlayer.fit(trials, responses),
                 SigmoidPlayer.fit(trials, responses),
                 ProspectPlayerP1.fit(trials, responses),
@@ -332,9 +347,7 @@ if __name__ == "__main__":
                 ProspectPlayerTK.fit(trials, responses) ]
 
     show([player] + players)
-    print()
     evaluate([player] + players, lotteries)
-
         
     # Bias estimated from responses (should correspond to player bias)
     # print(player)
