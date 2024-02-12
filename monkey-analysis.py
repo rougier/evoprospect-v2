@@ -20,14 +20,13 @@ def get_trials(data, subject_id=None, task_id=None):
         df = data.loc[(data['task_id'].isin(task_id))]
     else:
         df = data
-    
     trials = np.zeros((len(df),4))
     trials[:,0] = df["V_left"]
     trials[:,1] = df["P_left"]
     trials[:,2] = df["V_right"]
     trials[:,3] = df["P_right"]
     responses = np.zeros(len(df))
-    responses[...] = df["response"]
+    responses[...] = df["response"].astype(int)
     return trials, responses
 
 
@@ -71,10 +70,17 @@ if __name__ == "__main__":
               end="", flush=True)
 
         players = []
-        for cls in [RandomPlayer, SigmoidPlayer, ProspectPlayerP1,
-                    ProspectPlayerP2, ProspectPlayerGE, ProspectPlayerTK]:
-            print(".", end="", flush=True)
-            players.append(cls.fit(trials, responses))
+        for cls in [RandomPlayer, SigmoidPlayer,
+                    ProspectPlayerXX,
+                    ProspectPlayerP1, ProspectPlayerP2,
+                    ProspectPlayerGE, ProspectPlayerTK]:
+            player = cls.fit(trials, responses)
+            players.append(player)
+            if player.valid:
+                print(".", end="", flush=True)
+            else:
+                print("x", end="", flush=True)
+                        
 
         print(" done!" + color.END)
 
