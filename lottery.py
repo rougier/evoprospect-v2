@@ -45,9 +45,14 @@ L6 = [(v1,p1,v2,p2) for (v1,p1),(v2,p2) in L0
 L7 = [(v1,p1,v2,p2) for (v1,p1),(v2,p2) in L0
       if (v1 < v2) and (v2 < 0) and (p1<p2)]
 
+L0 = np.concatenate([L1, L2, L3, L4, L5, L6, L7], axis=0)
 lotteries = [L0, L1, L2, L3, L4, L5, L6, L7]
 
 def generate_trials(n, lottery):
+
+    if isinstance(lottery, (int)):
+        lottery = lotteries[lottery]
+    
     lottery = np.asarray(lottery).reshape(-1,4)
     L = lottery[np.random.randint(0, len(lottery), n)]
     swap = np.random.randint(0, 2, n)
@@ -56,4 +61,3 @@ def generate_trials(n, lottery):
         if swap[index]:
             L[index] = v2,p2,v1,p1
     return L
-
