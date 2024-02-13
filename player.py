@@ -76,6 +76,7 @@ class Player:
                            for k, v in self.parameters.items()))
     
     def play(self, trials):
+        "Make layer play given trials and return responses"
         
         # Compute proability of accepting first option
         P = self.accept(trials)
@@ -83,6 +84,16 @@ class Player:
         # Actual play
         return (np.random.uniform(0, 1, len(P)) < P).astype(int)
 
+    def get_data(self, lottery, n=10_000):
+        """
+        Generate n trials for the given lottery and make player
+        play them. Return trials and responses.
+        """
+        
+        trials = generate_trials(n, lottery)
+        responses = self.play(trials)
+        return trials, responses
+    
     @classmethod
     def random(cls, **kwargs):        
         parameters = {}
@@ -205,14 +216,14 @@ class ProspectPlayerXX(SigmoidPlayer):
     """
     shortname = "XX"
     parameters = SigmoidPlayer.parameters | {
-
+        "alpha": Parameter(1.0, (0.1, 3.0)),
     }
 
     def subjective_utility(self, V):
-        return np.where(V > 0, V, 2*V)
+        return np.where(V > 0, V, 2.5*V)
 
     def subjective_probability(self, P, V):
-        return np.where(V > 0, P**1.5, P**2)
+        return np.where(V > 0, P, P**self.alpha)
 
 class ProspectPlayerP1(ProspectPlayer):
     """
@@ -268,18 +279,19 @@ class ProspectPlayerTK(ProspectPlayer):
                           + np.power(1-P, self.alpha)), 1/self.alpha))
 
     
-def show(players):
-    "Display players parameters side by side"
+def show(reference=None, players=[]):
+    "Display reference and players parameters side by side"
 
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
-    
-    shortnames = [p.shortname for p in players]
-    if shortnames[0] in shortnames[1:]:
-        shortnames[0] = "(%s)" % shortnames[0]
-    
-    x.field_names = ([bold("Parameter")] +
-                     [bold(s) for s in shortnames])
+    if reference is not None:
+        x.field_names = ([bold("Parameter")] +
+                         [bold("(%s)" % reference.shortname)] +
+                         [bold("%s" % player.shortname) for player in players])
+        players = [reference] + players
+    else:
+        x.field_names = ([bold("Parameter")] +
+                         [bold("%s" % player.shortname) for player in players])
     names = []
     for player in players:
         for key in player.parameters.keys():
@@ -296,20 +308,61 @@ def show(players):
     print(x)
 
 
-def evaluate(players, lotteries):
+def evaluate_player_1(player, trials, responses, n=100):
+    """
+    Make the player play n times the trials and average the
+    difference with reponses.
+    """
+    
+    R = [player.play(trials) for _ in range(n)]
+    R = [1 - (abs(responses-r).sum() / len(trials)) for r in R]
+    return np.mean(R)
+         
+def evaluate_player_2(player, trials, responses, n=10):
+    """
+    Separate trials in unique trials and evaluate each type of trials
+    """
+    Z = []
+    for trial in np.unique(trials, axis=0):
+        I = np.argwhere((trials == trial).all(axis=1))
+        T = trials[I].reshape(-1,4)
+
+        # Left / right ratio for reference
+        R = np.mean(responses[I].reshape(-1))
+
+        # Left / right ratio 
+        PR = np.mean([player.play(T) for _ in range(n)], axis=1)
+        PR = np.mean(PR)
+        
+        Z.append( 1 - abs(R - PR))
+
+        
+        # Z.append( 1 - (abs(R - player.play(T))).sum()/len(R))
+    return np.mean(Z)
+
+    
+def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
     
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
-    x.field_names = ([bold("Lottery")] +
-                     [bold("(%s)" % players[0].shortname)] + 
-                     [bold(p.shortname) for p in players[1:]])
-    for i in range(len(lotteries)):
+    if isinstance(reference, (Player)):
+        x.field_names = ([bold("Lottery")] +
+                         [bold("(%s)" % reference.shortname)] + 
+                         [bold(p.shortname) for p in players])
+        players = [reference] + players
+    else:
+        x.field_names = ([bold("Lottery")] +
+                         [bold(p.shortname) for p in players])
+
+    for i in range(8):
         name = bold("L%d" % i)
-        lottery = lotteries[i]
-        trials = generate_trials(10_000, lottery)
-        R0 = players[0].play(trials)
-        R = [p.play(trials) for p in players]
-        R = [1 - ((abs(R0 - R).sum())/len(R0)) for R in R]
+        trials, R0 = reference.get_data(i, n)
+        
+        #R = [p.play(trials) for p in [reference] + players]
+        #R = [1 - ((abs(R0 - r ).sum())/len(R0)) for r in R]
+        
+        R = [evaluate_method(p, trials, R0) for p in players]
+        
         Rmin, Rmax = np.min(R), np.max(R)
         
         for i in range(len(R)):
@@ -346,8 +399,9 @@ if __name__ == "__main__":
                 ProspectPlayerGE.fit(trials, responses),
                 ProspectPlayerTK.fit(trials, responses) ]
 
-    show([player] + players)
-    evaluate([player] + players, lotteries)
+    show(player, players)
+    evaluate(player, players, 1000, evaluate_player_1)
+    evaluate(player, players, 1000, evaluate_player_2)
         
     # Bias estimated from responses (should correspond to player bias)
     # print(player)
