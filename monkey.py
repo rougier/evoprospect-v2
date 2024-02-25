@@ -1,3 +1,5 @@
+# Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
+# Released under a BSD 2-clauses license
 
 import numpy as np
 import pandas as pd
@@ -34,10 +36,6 @@ class Monkey:
             trials, responses = get_trials(name, index)
             self.data.append((trials, responses))
 
-        # To mimic lotteries,  data[0] is the concatenation
-        # of all other data even though there exist data for index 0
-        #all = (np.concatenate([d[0] for d in self.data], axis=0),
-        #       np.concatenate([d[1] for d in self.data], axis=0))
         all = get_trials(name)        
         self.count = len(all[0])
         self.bias = 0.5 - all[1].sum() / len(all[0])
@@ -54,6 +52,7 @@ class Monkey:
         return trials[I], responses[I]
         
 
+
 monkeys = []
 print("Get monkey data", end="", flush=True)
 for name in subject_ids:
@@ -62,5 +61,7 @@ for name in subject_ids:
     monkeys.append(monkey)
 print(" done!")
 
-# for monkey in monkeys: print(monkey)
-# print(monkeys[0].get_data(0, n=10))
+if __name__ == "__main__":
+    for monkey in monkeys:
+        print(monkey)
+
