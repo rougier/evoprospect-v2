@@ -1,3 +1,5 @@
+# Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
+# Released under a BSD 2-clauses license
 import numpy as np
 from collections import namedtuple
 from prettytable import PrettyTable, SINGLE_BORDER
@@ -209,21 +211,24 @@ class ProspectPlayer(SigmoidPlayer):
                         np.power(np.abs(V), self.rho),
                         -self.lambda_ * np.power(np.abs(V), self.rho))
 
-
 class ProspectPlayerXX(SigmoidPlayer):
     """
     Experimental prospect player.
     """
     shortname = "XX"
     parameters = SigmoidPlayer.parameters | {
-        "alpha": Parameter(1.0, (0.1, 3.0)),
+        "gain": Parameter(1.0, (0.1, 3.0)),
+        "alpha_g": Parameter(1.0, (0.1, 3.0)),
+        "alpha_l": Parameter(1.0, (0.1, 3.0)),
     }
 
     def subjective_utility(self, V):
-        return np.where(V > 0, V, 2.5*V)
+        return np.where(V > 0, V, self.gain*V)
 
     def subjective_probability(self, P, V):
-        return np.where(V > 0, P, P**self.alpha)
+        return np.where(V > 0,
+                        P**self.alpha_g,
+                        P**self.alpha_l)
 
 class ProspectPlayerP1(ProspectPlayer):
     """
@@ -237,6 +242,21 @@ class ProspectPlayerP1(ProspectPlayer):
         return np.exp(- np.power((-np.log(P)), self.alpha))
 
 
+class DualProspectPlayerP1(ProspectPlayer):
+    """
+    """
+    shortname = "P1+"
+    parameters = ProspectPlayer.parameters | {
+        "alpha_g": Parameter(1.0, (0.1, 3.0)),
+        "alpha_l": Parameter(1.0, (0.1, 3.0)),
+    }
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        np.exp(- np.power((-np.log(P)), self.alpha_g)),
+                        np.exp(- np.power((-np.log(P)), self.alpha_l)))
+
+
 class ProspectPlayerP2(ProspectPlayer):
     """
     """
@@ -248,6 +268,22 @@ class ProspectPlayerP2(ProspectPlayer):
 
     def subjective_probability(self, P, V):
         return np.exp(-self.delta*np.power((-np.log(P)), self.alpha))
+
+class DualProspectPlayerP2(ProspectPlayer):
+    """
+    """
+    shortname = "P2+"
+    parameters = ProspectPlayer.parameters | {
+        "alpha_g": Parameter(1.0, (0.1, 3.0)),
+        "alpha_l": Parameter(1.0, (0.1, 3.0)),
+        "delta_g": Parameter(1.0, (0.1, 3.0)),
+        "delta_l": Parameter(1.0, (0.1, 3.0)),
+    }
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        np.exp(-self.delta_g*np.power((-np.log(P)), self.alpha_g)),
+                        np.exp(-self.delta_l*np.power((-np.log(P)), self.alpha_l)))
 
     
 class ProspectPlayerGE(ProspectPlayer):
@@ -264,6 +300,26 @@ class ProspectPlayerGE(ProspectPlayer):
         return (self.delta*np.power(P,self.alpha) /
            (self.delta *np.power(P,self.gamma) + np.power(1-P, self.alpha)))
 
+class DualProspectPlayerGE(ProspectPlayer):
+    """
+    """
+    shortname = "GE+"
+    parameters = ProspectPlayer.parameters | {
+        "alpha_g": Parameter(1.0, (0.1, 3.0)),
+        "alpha_l": Parameter(1.0, (0.1, 3.0)),
+        "delta_g": Parameter(1.0, (0.1, 3.0)),
+        "delta_l": Parameter(1.0, (0.1, 3.0)),
+        "gamma_g": Parameter(1.0, (0.1, 3.0)),
+        "gamma_l": Parameter(1.0, (0.1, 3.0)),
+    }
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        (self.delta_g*np.power(P,self.alpha_g) /
+                         (self.delta_g *np.power(P,self.gamma_g) + np.power(1-P, self.alpha_g))),
+                        (self.delta_l*np.power(P,self.alpha_l) /
+                         (self.delta_l *np.power(P,self.gamma_l) + np.power(1-P, self.alpha_l))))
+
 
 class ProspectPlayerTK(ProspectPlayer):
     """
@@ -277,6 +333,24 @@ class ProspectPlayerTK(ProspectPlayer):
         return (np.power(P, self.alpha) /
                 np.power((np.power(P, self.alpha)
                           + np.power(1-P, self.alpha)), 1/self.alpha))
+
+class DualProspectPlayerTK(ProspectPlayer):
+    """
+    """
+    shortname = "TK+"
+    parameters = ProspectPlayer.parameters | {
+        "alpha_g": Parameter(1.0, (0.1, 3.0)),
+        "alpha_l": Parameter(1.0, (0.1, 3.0))
+    }
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        (np.power(P, self.alpha_g) /
+                         np.power((np.power(P, self.alpha_g)
+                                   + np.power(1-P, self.alpha_g)), 1/self.alpha_g)),
+                        (np.power(P, self.alpha_l) /
+                         np.power((np.power(P, self.alpha_l)
+                                   + np.power(1-P, self.alpha_l)), 1/self.alpha_l)))
 
     
 def show(reference=None, players=[]):
@@ -318,29 +392,24 @@ def evaluate_player_1(player, trials, responses, n=100):
     R = [1 - (abs(responses-r).sum() / len(trials)) for r in R]
     return np.mean(R)
          
-def evaluate_player_2(player, trials, responses, n=10):
+def evaluate_player_2(player, trials, responses, n=100):
     """
     Separate trials in unique trials and evaluate each type of trials
     """
-    Z = []
-    for trial in np.unique(trials, axis=0):
-        I = np.argwhere((trials == trial).all(axis=1))
-        T = trials[I].reshape(-1,4)
+    # Get unique trials (and counts)
+    T = np.unique(trials, axis=0)
 
-        # Left / right ratio for reference
-        R = np.mean(responses[I].reshape(-1))
-
-        # Left / right ratio 
-        PR = np.mean([player.play(T) for _ in range(n)], axis=1)
-        PR = np.mean(PR)
-        
-        Z.append( 1 - abs(R - PR))
-
-        
-        # Z.append( 1 - (abs(R - player.play(T))).sum()/len(R))
-    return np.mean(Z)
-
+    # Get mean response over each type of trial
+    R0 = [np.mean(responses[np.argwhere((trials == trial).all(axis=1))]) for trial in T]
     
+    # Get mean response from player for each type of trial played n times
+    R = np.mean([player.play(T) for _ in range(n)], axis=0)
+
+    return 1 - np.mean(abs(R0 - R))
+    
+def calculate_diff(R0, R_player):
+    return np.mean(np.abs(R0 - R_player))
+
 def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
     
     x = PrettyTable(border=True, align="l")
@@ -356,13 +425,8 @@ def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
 
     for i in range(8):
         name = bold("L%d" % i)
-        trials, R0 = reference.get_data(i, n)
-        
-        #R = [p.play(trials) for p in [reference] + players]
-        #R = [1 - ((abs(R0 - r ).sum())/len(R0)) for r in R]
-        
-        R = [evaluate_method(p, trials, R0) for p in players]
-        
+        trials, responses = reference.get_data(i)
+        R = [evaluate_method(p, trials, responses) for p in players]
         Rmin, Rmax = np.min(R), np.max(R)
         
         for i in range(len(R)):
@@ -374,7 +438,6 @@ def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
                 R[i] = "%.3f" % R[i]
         x.add_row([name] + R)
     print(x)
-        
 
         
 if __name__ == "__main__":
@@ -400,12 +463,15 @@ if __name__ == "__main__":
                 ProspectPlayerTK.fit(trials, responses) ]
 
     show(player, players)
-    evaluate(player, players, 1000, evaluate_player_1)
-    evaluate(player, players, 1000, evaluate_player_2)
-        
-    # Bias estimated from responses (should correspond to player bias)
-    # print(player)
-    # print("Estimated bias: %.3f" % (responses.sum()/len(responses)))
-    # print()
-    
+    evaluate(player, players, 100, evaluate_player_2)
+
+    print()
+    players = [ DualProspectPlayerP1.fit(trials, responses),
+                DualProspectPlayerP2.fit(trials, responses),
+                DualProspectPlayerGE.fit(trials, responses),
+                DualProspectPlayerTK.fit(trials, responses) ]
+
+    show(player, players)
+    evaluate(player, players, 100, evaluate_player_2)
+
 

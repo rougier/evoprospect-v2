@@ -1,3 +1,5 @@
+# Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
+# Released under a BSD 2-clauses license
 import itertools
 import numpy as np
 

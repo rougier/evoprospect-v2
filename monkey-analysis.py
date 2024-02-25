@@ -1,19 +1,26 @@
+# Copyright 2024 (c) aomi Chaix-Echel & Nicolas P Rougier
+# Released under a BSD 2-clauses license
 
 if __name__ == "__main__":
 
     from player import *
     from monkey import monkeys
 
+    lottery = 0
     for monkey in monkeys:
+        trials, responses = monkey.get_data(lottery=lottery)
+        n = len(trials)
         print(color.BOLD + color.RED + repr(monkey) + color.END)
-        print("Fitting ",  end="", flush=True)
+        print(f"Fitting using lottery {lottery} (n={n:,})",  end="", flush=True)
         
-        trials, responses = monkey.get_data(lottery=0)
         players = []        
         for cls in [RandomPlayer, SigmoidPlayer,
-                    ProspectPlayerXX,
-                    ProspectPlayerP1, ProspectPlayerP2,
-                    ProspectPlayerGE, ProspectPlayerTK]:
+ #                   ProspectPlayerXX,
+                    DualProspectPlayerP1, DualProspectPlayerP2,
+                    DualProspectPlayerGE, DualProspectPlayerTK,
+#                    ProspectPlayerP1, ProspectPlayerP2,
+#                    ProspectPlayerGE, ProspectPlayerTK
+                    ]:
             player = cls.fit(trials, responses)
             players.append(player)
             if player.valid:
