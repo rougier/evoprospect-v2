@@ -41,14 +41,14 @@ class color:
 def bold(text): return color.BOLD + color.BLACK + text + color.END
 def red(text): return color.RED + text + color.END
 
-    
+
 class Player:
     """
     Generic player
     """
     shortname = "GP"
     parameters = { }
-    
+
     def __init__(self, *args, **kwargs):
         keys    = list(type(self).parameters.keys())
         values  = list(type(self).parameters.values())
@@ -76,10 +76,10 @@ class Player:
             cls = self.__class__.__name__,
             attrs=", ".join("{}={:.3f}".format(k, v)
                            for k, v in self.parameters.items()))
-    
+
     def play(self, trials):
         "Make layer play given trials and return responses"
-        
+
         # Compute proability of accepting first option
         P = self.accept(trials)
 
@@ -91,13 +91,13 @@ class Player:
         Generate n trials for the given lottery and make player
         play them. Return trials and responses.
         """
-        
+
         trials = generate_trials(n, lottery)
         responses = self.play(trials)
         return trials, responses
-    
+
     @classmethod
-    def random(cls, **kwargs):        
+    def random(cls, **kwargs):
         parameters = {}
         for key in cls.parameters.keys():
             vmin,vmax = cls.parameters[key].bounds
@@ -106,7 +106,7 @@ class Player:
             parameters[key] = kwargs[key]
         return cls(**parameters)
 
-        
+
     @classmethod
     def log_likelihood(cls, params, trials, responses, kwargs):
         """
@@ -147,7 +147,7 @@ class Player:
         player = cls(*res.x)
         player.valid = valid
         if not valid:
-            player.shortname = "!" + player.shortname        
+            player.shortname = "!" + player.shortname
         return player
 
 class RandomPlayer(Player):
@@ -160,11 +160,11 @@ class RandomPlayer(Player):
     parameters = Player.parameters | {
         "x0": Parameter(0.0, (-3.0, +3.0))
     }
-                   
+
     def accept(self, trials):
          P = (0.5 - self.x0/3) * np.ones(len(trials))
          return P # Player.accept(self, P)
-    
+
 class SigmoidPlayer(Player):
     """
     Player that plays according to a sigmoid applied to the
@@ -184,7 +184,7 @@ class SigmoidPlayer(Player):
 
     def subjective_probability(self, P, V):
         return P
-    
+
     def accept(self, trials):
         V1, P1 = trials[:,0], trials[:,1]
         V2, P2 = trials[:,2], trials[:,3]
@@ -195,7 +195,7 @@ class SigmoidPlayer(Player):
         P = self.sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
         return P # Player.accept(self, P)
 
-    
+
 class ProspectPlayer(SigmoidPlayer):
     """
     Generic prospect player with unspecified subjective probability.
@@ -285,7 +285,7 @@ class DualProspectPlayerP2(ProspectPlayer):
                         np.exp(-self.delta_g*np.power((-np.log(P)), self.alpha_g)),
                         np.exp(-self.delta_l*np.power((-np.log(P)), self.alpha_l)))
 
-    
+
 class ProspectPlayerGE(ProspectPlayer):
     """
     """
@@ -352,7 +352,7 @@ class DualProspectPlayerTK(ProspectPlayer):
                          np.power((np.power(P, self.alpha_l)
                                    + np.power(1-P, self.alpha_l)), 1/self.alpha_l)))
 
-    
+
 def show(reference=None, players=[]):
     "Display reference and players parameters side by side"
 
@@ -387,12 +387,12 @@ def evaluate_player_1(player, trials, responses, n=100):
     Make the player play n times the trials and average the
     difference with reponses.
     """
-    
+
     R = [player.play(trials) for _ in range(n)]
     R = [1 - (abs(responses-r).sum() / len(trials)) for r in R]
     return np.mean(R)
-         
-def evaluate_player_2(player, trials, responses, n=100):
+
+def evaluate_player_2(player, trials, responses, n=1000):
     """
     Separate trials in unique trials and evaluate each type of trials
     """
@@ -401,22 +401,22 @@ def evaluate_player_2(player, trials, responses, n=100):
 
     # Get mean response over each type of trial
     R0 = [np.mean(responses[np.argwhere((trials == trial).all(axis=1))]) for trial in T]
-    
+
     # Get mean response from player for each type of trial played n times
     R = np.mean([player.play(T) for _ in range(n)], axis=0)
 
     return 1 - np.mean(abs(R0 - R))
-    
+
 def calculate_diff(R0, R_player):
     return np.mean(np.abs(R0 - R_player))
 
 def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
-    
+
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
     if isinstance(reference, (Player)):
         x.field_names = ([bold("Lottery")] +
-                         [bold("(%s)" % reference.shortname)] + 
+                         [bold("(%s)" % reference.shortname)] +
                          [bold(p.shortname) for p in players])
         players = [reference] + players
     else:
@@ -428,7 +428,7 @@ def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
         trials, responses = reference.get_data(i)
         R = [evaluate_method(p, trials, responses) for p in players]
         Rmin, Rmax = np.min(R), np.max(R)
-        
+
         for i in range(len(R)):
             if abs(R[i] - Rmax) < 1e-5:
                 R[i] = bold("%.3f" % R[i])
@@ -439,39 +439,78 @@ def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
         x.add_row([name] + R)
     print(x)
 
-        
+
 if __name__ == "__main__":
-    import warnings 
+    import warnings
     from lottery import *
 
     warnings.filterwarnings('ignore')
     # np.random.seed(123)
-    
-    # We create a player and make it play lottery 0
-    # player = RandomPlayer.random(bias=0)
-    # player = SigmoidPlayer.random()
-    player = ProspectPlayerP1.random()
+
+    # # We create a player and make it play lottery 0
+    # # player = RandomPlayer.random(bias=0)
+    # # player = SigmoidPlayer.random()
+    # player = ProspectPlayerP1.random()
+    # trials = generate_trials(5_000, L0)
+    # responses = player.play(trials)
+
+    # # We try to fit each player against player
+    # players = [ RandomPlayer.fit(trials, responses),
+    #             SigmoidPlayer.fit(trials, responses),
+    #             ProspectPlayerP1.fit(trials, responses),
+    #             ProspectPlayerP2.fit(trials, responses),
+    #             ProspectPlayerGE.fit(trials, responses),
+    #             ProspectPlayerTK.fit(trials, responses) ]
+
+    # show(player, players)
+    # evaluate(player, players, 100, evaluate_player_2)
+
+    # print()
+    # players = [ DualProspectPlayerP1.fit(trials, responses),
+    #             DualProspectPlayerP2.fit(trials, responses),
+    #             DualProspectPlayerGE.fit(trials, responses),
+    #             DualProspectPlayerTK.fit(trials, responses) ]
+
+    # show(player, players)
+    # evaluate(player, players, 100, evaluate_player_2)
+
+
+
+    # Confusion matrix
+    # ------------------------------------------------------------------
+    players = [ RandomPlayer,
+                SigmoidPlayer,
+                ProspectPlayerXX,
+                DualProspectPlayerP1,
+                DualProspectPlayerP2,
+                DualProspectPlayerGE,
+                DualProspectPlayerTK,
+                ProspectPlayerP1,
+                ProspectPlayerP2,
+                ProspectPlayerGE,
+                ProspectPlayerTK]
+
+    x = PrettyTable(border=True, align="l")
+    x.set_style(SINGLE_BORDER)
+    x.field_names = ([bold("Players")] +
+                     [bold(p.shortname) for p in players])
+
     trials = generate_trials(5_000, L0)
-    responses = player.play(trials)
+    for target in players:
+        target = target.random()
+        responses = target.play(trials)
 
-    # We try to fit each player against player
-    players = [ RandomPlayer.fit(trials, responses),
-                SigmoidPlayer.fit(trials, responses),
-                ProspectPlayerP1.fit(trials, responses),
-                ProspectPlayerP2.fit(trials, responses),
-                ProspectPlayerGE.fit(trials, responses),
-                ProspectPlayerTK.fit(trials, responses) ]
+        name = target.shortname
 
-    show(player, players)
-    evaluate(player, players, 100, evaluate_player_2)
-
-    print()
-    players = [ DualProspectPlayerP1.fit(trials, responses),
-                DualProspectPlayerP2.fit(trials, responses),
-                DualProspectPlayerGE.fit(trials, responses),
-                DualProspectPlayerTK.fit(trials, responses) ]
-
-    show(player, players)
-    evaluate(player, players, 100, evaluate_player_2)
-
-
+        P = [p.fit(trials, responses) for p in players]
+        R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
+        Rmin, Rmax = np.min(R), np.max(R)
+        for i in range(len(R)):
+            if abs(R[i] - Rmax) < 1e-5:
+                R[i] = bold("%.3f" % R[i])
+            elif abs(R[i] - Rmin) < 1e-3:
+                R[i] = red("%.3f" % R[i])
+            else:
+                R[i] = "%.3f" % R[i]
+        x.add_row([name] + R)
+    print(x)
