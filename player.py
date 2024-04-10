@@ -476,8 +476,51 @@ if __name__ == "__main__":
 
 
 
-    # Confusion matrix
+    # # Confusion matrix (players/players)
+    # # ------------------------------------------------------------------
+    # players = [ RandomPlayer,
+    #             SigmoidPlayer,
+    #             ProspectPlayerXX,
+    #             DualProspectPlayerP1,
+    #             DualProspectPlayerP2,
+    #             DualProspectPlayerGE,
+    #             DualProspectPlayerTK,
+    #             ProspectPlayerP1,
+    #             ProspectPlayerP2,
+    #             ProspectPlayerGE,
+    #             ProspectPlayerTK]
+
+    # x = PrettyTable(border=True, align="l")
+    # x.set_style(SINGLE_BORDER)
+    # x.field_names = ([bold("Players")] +
+    #                  [bold(p.shortname) for p in players])
+
+    # trials = generate_trials(5_000, L0)
+    # for target in players:
+    #     target = target.random()
+    #     responses = target.play(trials)
+
+    #     name = target.shortname
+
+    #     P = [p.fit(trials, responses) for p in players]
+    #     R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
+    #     Rmin, Rmax = np.min(R), np.max(R)
+    #     for i in range(len(R)):
+    #         if abs(R[i] - Rmax) < 1e-5:
+    #             R[i] = bold("%.3f" % R[i])
+    #         elif abs(R[i] - Rmin) < 1e-3:
+    #             R[i] = red("%.3f" % R[i])
+    #         else:
+    #             R[i] = "%.3f" % R[i]
+    #     x.add_row([name] + R)
+    # print(x)
+
+
+    # Confusion matrix (players/monkeys)
     # ------------------------------------------------------------------
+    from monkey import monkeys
+
+
     players = [ RandomPlayer,
                 SigmoidPlayer,
                 ProspectPlayerXX,
@@ -490,17 +533,17 @@ if __name__ == "__main__":
                 ProspectPlayerGE,
                 ProspectPlayerTK]
 
+
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
     x.field_names = ([bold("Players")] +
                      [bold(p.shortname) for p in players])
 
     trials = generate_trials(5_000, L0)
-    for target in players:
-        target = target.random()
-        responses = target.play(trials)
 
-        name = target.shortname
+    for monkey in monkeys:
+        trials, responses = monkey.get_data(lottery=0)
+        name = monkey.shortname
 
         P = [p.fit(trials, responses) for p in players]
         R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
