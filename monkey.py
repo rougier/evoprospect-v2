@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 data = pd.read_csv("./data/data-processed.csv")
+data.sort_values(by="date", inplace=True)
+
 subject_ids = data['subject_id'].unique()
 task_ids = np.sort(data['task_id'].unique())
 
@@ -25,6 +27,7 @@ def get_trials(subject_id=None, task_id=None):
     trials = df[["V_left","P_left","V_right","P_right"]]
     responses = df["response"]
     return np.asarray(trials), np.asarray(responses)
+
 
 class Monkey:
     """Monday data abstraction """

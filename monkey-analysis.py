@@ -12,10 +12,10 @@ if __name__ == "__main__":
         n = len(trials)
         print(color.BOLD + color.RED + repr(monkey) + color.END)
         print(f"Fitting using lottery {lottery} (n={n:,})",  end="", flush=True)
-        
-        players = []        
+
+        players = []
         for cls in [RandomPlayer, SigmoidPlayer,
- #                   ProspectPlayerXX,
+                    ProspectPlayerXX,
                     DualProspectPlayerP1, DualProspectPlayerP2,
                     DualProspectPlayerGE, DualProspectPlayerTK,
 #                    ProspectPlayerP1, ProspectPlayerP2,
@@ -28,12 +28,9 @@ if __name__ == "__main__":
             else:
                 print("x", end="", flush=True)
         print(" done!")
-        
+
         # We compare players parameters
         show(players=players)
 
         # We evaluate players, including the original one
         evaluate(monkey, players, n=1000, evaluate_method=evaluate_player_2)
-
-
-                

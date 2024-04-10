@@ -451,7 +451,7 @@ if __name__ == "__main__":
     # player = RandomPlayer.random(bias=0)
     # player = SigmoidPlayer.random()
     player = ProspectPlayerP1.random()
-    trials = generate_trials(10_000, L0)
+    trials = generate_trials(5_000, L0)
     responses = player.play(trials)
 
     # We try to fit each player against player
