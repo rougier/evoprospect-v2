@@ -203,13 +203,14 @@ class ProspectPlayer(SigmoidPlayer):
     shortname = "PT"
     parameters = SigmoidPlayer.parameters | {
         "lambda_": Parameter(1.0, (0.1, 3.0)),
-        "rho":     Parameter(1.0, (0.1, 3.0))
+        "rho_g":     Parameter(1.0, (0.1, 3.0)),
+        "rho_l":     Parameter(1.0, (0.1, 3.0))
     }
 
     def subjective_utility(self, V):
         return np.where(V > 0,
-                        np.power(np.abs(V), self.rho),
-                        -self.lambda_ * np.power(np.abs(V), self.rho))
+                        np.power(np.abs(V), self.rho_g),
+                        -self.lambda_ * np.power(np.abs(V), self.rho_l))
 
 class ProspectPlayerXX(SigmoidPlayer):
     """
@@ -520,7 +521,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     from monkey import monkeys
 
-
+    np.random.seed(1)
     players = [ RandomPlayer,
                 SigmoidPlayer,
                 ProspectPlayerXX,
