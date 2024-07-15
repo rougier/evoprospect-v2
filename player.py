@@ -145,6 +145,9 @@ class Player:
                        args = (trials, responses, kwargs))
         valid = res.success
         player = cls(*res.x)
+        # See https://stackoverflow.com/questions/78545168/
+        # -> finding-unused-variables-after-minimizing
+        # print(res.jac)
         player.valid = valid
         if not valid:
             player.shortname = "!" + player.shortname
@@ -165,6 +168,56 @@ class RandomPlayer(Player):
          P = (0.5 - self.x0/3) * np.ones(len(trials))
          return P # Player.accept(self, P)
 
+class LeftPlayer(Player):
+    """
+    Left player only plays left option
+    """
+    shortname = "LPY"
+
+    def accept(self, trials):
+         return np.zeros(len(trials))
+
+class RightPlayer(Player):
+    """
+    Right player only plays right option
+    """
+    shortname = "RPY"
+
+    def accept(self, trials):
+         return np.ones(len(trials))
+
+
+class LazyLeftPlayer(Player):
+    """
+    Lazy left player plays left option all the time unless there's
+    a big reward on the right
+    """
+    shortname = "LazyL"
+    parameters = Player.parameters | {
+        "delta": Parameter(0.0, (0.0, +6.0))
+    }
+
+    def accept(self, trials):
+        V1, P1 = trials[:,0], trials[:,1]
+        V2, P2 = trials[:,2], trials[:,3]
+        return (V2*P2 - V1*P1) > self.delta
+
+class LazyRightPlayer(Player):
+    """
+    Lazy right player plays right option all the time unless there's
+    a big reward on the left.
+    """
+    shortname = "LazyR"
+    parameters = Player.parameters | {
+        "delta": Parameter(0.0, (0.0, +6.0))
+    }
+
+    def accept(self, trials):
+        V1, P1 = trials[:,0], trials[:,1]
+        V2, P2 = trials[:,2], trials[:,3]
+        # return np.where((V1-V2) > self.delta, 1.0, 0.0)
+        return (V1*P1 - V2*P2) > self.delta
+
 class SigmoidPlayer(Player):
     """
     Player that plays according to a sigmoid applied to the
@@ -172,8 +225,8 @@ class SigmoidPlayer(Player):
     """
     shortname = "SG"
     parameters = Player.parameters | {
-        "x0": Parameter(0.0, (-3.0, +3.0)),
-        "mu": Parameter(5.0, ( 0.1, 10.0))
+        "x0": Parameter(0.0, (-6.0, +6.0)),
+        "mu": Parameter(5.0, ( 0.1, 20.0))
     }
 
     def sigmoid(self, X, x0=0.0, mu=1.0):
@@ -448,6 +501,41 @@ if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     # np.random.seed(123)
 
+
+    # We create a player and make it play lottery 0
+    # player = RandomPlayer.random(x0=0)
+    # player = SigmoidPlayer.random()
+    # player = RightPlayer.random()
+    player = ProspectPlayerP2.random(x0=3)
+    # player = SigmoidPlayer.random(x0=0, mu=1)
+
+    # player = LazyLeftPlayer.random()
+    # player = LazyLeftPlayer(delta=2)
+
+    # player = ProspectPlayerP2.random(x0=1.5, rho_g=1, rho_l=1)
+    trials = generate_trials(5_000, L0)
+    responses = player.play(trials)
+
+    print("Bias: %.3f / %.3f" % (
+        responses.sum()/len(responses),
+        1-responses.sum()/len(responses)))
+
+
+
+    # We try to fit each player against player
+    players = [ RandomPlayer.fit(trials, responses),
+    #            LazyRightPlayer.fit(trials, responses),
+    #            LazyLeftPlayer.fit(trials, responses),
+                SigmoidPlayer.fit(trials, responses),
+                ProspectPlayerP1.fit(trials, responses),
+                ProspectPlayerP2.fit(trials, responses),
+                ProspectPlayerGE.fit(trials, responses),
+                ProspectPlayerTK.fit(trials, responses) ]
+
+    show(player, players)
+    evaluate(player, players, 100, evaluate_player_2)
+
+
     # # We create a player and make it play lottery 0
     # # player = RandomPlayer.random(bias=0)
     # # player = SigmoidPlayer.random()
@@ -517,44 +605,46 @@ if __name__ == "__main__":
     # print(x)
 
 
+
+
     # Confusion matrix (players/monkeys)
     # ------------------------------------------------------------------
-    from monkey import monkeys
+    # from monkey import monkeys
 
-    np.random.seed(1)
-    players = [ RandomPlayer,
-                SigmoidPlayer,
-                ProspectPlayerXX,
-                DualProspectPlayerP1,
-                DualProspectPlayerP2,
-                DualProspectPlayerGE,
-                DualProspectPlayerTK,
-                ProspectPlayerP1,
-                ProspectPlayerP2,
-                ProspectPlayerGE,
-                ProspectPlayerTK]
+    # np.random.seed(1)
+    # players = [ RandomPlayer,
+    #             SigmoidPlayer,
+    #             ProspectPlayerXX,
+    #             DualProspectPlayerP1,
+    #             DualProspectPlayerP2,
+    #             DualProspectPlayerGE,
+    #             DualProspectPlayerTK,
+    #             ProspectPlayerP1,
+    #             ProspectPlayerP2,
+    #             ProspectPlayerGE,
+    #             ProspectPlayerTK]
 
 
-    x = PrettyTable(border=True, align="l")
-    x.set_style(SINGLE_BORDER)
-    x.field_names = ([bold("Players")] +
-                     [bold(p.shortname) for p in players])
+    # x = PrettyTable(border=True, align="l")
+    # x.set_style(SINGLE_BORDER)
+    # x.field_names = ([bold("Players")] +
+    #                  [bold(p.shortname) for p in players])
 
-    trials = generate_trials(5_000, L0)
+    # trials = generate_trials(5_000, L0)
 
-    for monkey in monkeys:
-        trials, responses = monkey.get_data(lottery=0)
-        name = monkey.shortname
+    # for monkey in monkeys:
+    #     trials, responses = monkey.get_data(lottery=0)
+    #     name = monkey.shortname
 
-        P = [p.fit(trials, responses) for p in players]
-        R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
-        Rmin, Rmax = np.min(R), np.max(R)
-        for i in range(len(R)):
-            if abs(R[i] - Rmax) < 1e-5:
-                R[i] = bold("%.3f" % R[i])
-            elif abs(R[i] - Rmin) < 1e-3:
-                R[i] = red("%.3f" % R[i])
-            else:
-                R[i] = "%.3f" % R[i]
-        x.add_row([name] + R)
-    print(x)
+    #     P = [p.fit(trials, responses) for p in players]
+    #     R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
+    #     Rmin, Rmax = np.min(R), np.max(R)
+    #     for i in range(len(R)):
+    #         if abs(R[i] - Rmax) < 1e-5:
+    #             R[i] = bold("%.3f" % R[i])
+    #         elif abs(R[i] - Rmin) < 1e-3:
+    #             R[i] = red("%.3f" % R[i])
+    #         else:
+    #             R[i] = "%.3f" % R[i]
+    #     x.add_row([name] + R)
+    # print(x)
