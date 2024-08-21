@@ -1,46 +1,127 @@
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
+import sys
 import numpy as np
 from collections import namedtuple
 from prettytable import PrettyTable, SINGLE_BORDER
 from scipy.optimize import minimize
 from lottery import lotteries, generate_trials
+from color import bold, red
+
+""" Considering that a lottery L(m, p) denotes a gamble that pays m
+(magnitude of the offered reward) with probability p, and 0 otherwise.
+
+Utility functions
+-----------------
+
+RT: Rational : No parameter
+
+    u(m) = m
+
+PU: Power (isoelastic) utility : 1 parameter (alpha)
+
+    u(m) = m^alpha
+
+TK: Tversky & Kahneman  : 3 parameters (alpha, lambda, beta)
+    D.Kahneman, A.Tversky, Prospect theory: An analysis of decision
+    under risk.Econometrica 47, 263-292 (1979)
+
+    u(m) = | m^alpha if m >= 0
+           | -lambda * (-m)^beta if m < 0
+
+
+u(m) |  Parameters                    | # |
+-----+--------------------------------+---+
+RT   | -                              | 0 |
+PU   | alpha                          | 1 |
+TK   | alpha, lambda, beta            | 3 |
+
+
+Probability functions
+---------------------
+
+RT: Rational : No parameter
+
+    w(p) = p
+
+TK: Tversky & Kahneman  : 1 parameter (gamma)
+    D.Kahneman, A.Tversky, Prospect theory: An analysis of decision
+    under risk.Econometrica 47, 263-292 (1979)
+
+    w(p) = (p^gamma) / (p^gamma + (1-p)^gamma)^(1/gamma))
+
+P1: Prelec (1) : 1 parameter (gamma)
+    D.Prelec, The probability weighting function. Econometrica 66, 497–527 (1998)
+
+    w(p) = exp(-(-log p)^gamma)
+
+P2: Prelec (2) : 2 parameters (delta, gamma)
+    D.Prelec, The probability weighting function. Econometrica 66, 497–527 (1998)
+
+    w(p) = exp(-delta*(-log p)^gamma)
+
+GE: Goldstein & Einhorn : 2 parameters (delta, gamma)
+    W. M. Goldstein, H. J. Einhorn, Expression theory and the
+    preference reversal phenomena. Psychol. Rev. 94, 236–254 (1987).
+
+    w(p) = delta*(p^gamma) / (delta*p^gamma + (1-p)^gamma))
+
+
+w(p) |  Parameters                    | # |
+-----+--------------------------------+---+
+RT   | -                              | 0 |
+TK   | gamma                          | 1 |
+P1   | gamma                          | 1 |
+P2   | delta, gamma                   | 2 |
+GE   | delta, gamma                   | 2 |
+
+
+Decision functions
+------------------
+
+Considering two lotteries L1(m1, p1) and L2(m2,p2), the probability
+P(x) of choosing L1 over L2, with V1 = w(p1)*u(m1), V2 = w(p2)*u(m2),
+x = V1 - V2 is given by:
+
+SG : Sigmoid : 2 parameters (x0, mu)
+
+     P(x) = 1 / (1 + np.exp(-mu*(x-x0)))
+
+LG : Logistic : 1 parameter (mu)
+
+     P(x) = 1 / (1 + exp(−mu*x))
+
+LB : Left bias : no parameter
+
+     P(z) = 0
+
+RB : Right bias : no parameter
+
+     P(z) = 1
+
+LL : Lazy left : one parameter (epsilon)
+
+     P(x) = 0 if x > epsilon 1 else
+
+LR : Lazy right : one parameter (epsilon)
+
+     P(x) = 1 if x < epsilon 0 else
+
+RD : Random : one parameter (epsilon)
+
+     P(x) = 0 if U(0,1) < epsilon else 1bi
+
+
+Evaluation
+----------
+
+Given a player characterized by its utility, probability and decision
+function, given a set of trials Ti (P1i,V1i, P2i,V2i) and responses R
+
+"""
 
 
 Parameter = namedtuple('Parameter', ['default', 'bounds'])
-
-class color:
-
-    # Color
-    BLACK = '\033[90m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    GRAY = '\033[97m'
-
-    # Style
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-    # BackgroundColor
-    BgBLACK = '\033[40m'
-    BgRED = '\033[41m'
-    BgGREEN = '\033[42m'
-    BgORANGE = '\033[43m'
-    BgBLUE = '\033[44m'
-    BgPURPLE = '\033[45m'
-    BgCYAN = '\033[46m'
-    BgGRAY = '\033[47m'
-
-    # End
-    END = '\033[0m'
-
-def bold(text): return color.BOLD + color.BLACK + text + color.END
-def red(text): return color.RED + text + color.END
-
 
 class Player:
     """
@@ -78,13 +159,14 @@ class Player:
                            for k, v in self.parameters.items()))
 
     def play(self, trials):
-        "Make layer play given trials and return responses"
+        "Make player to play given trials and return responses"
 
         # Compute proability of accepting first option
         P = self.accept(trials)
 
         # Actual play
         return (np.random.uniform(0, 1, len(P)) < P).astype(int)
+
 
     def get_data(self, lottery, n=10_000):
         """
@@ -96,12 +178,33 @@ class Player:
         responses = self.play(trials)
         return trials, responses
 
+
     @classmethod
     def random(cls, **kwargs):
         parameters = {}
         for key in cls.parameters.keys():
             vmin,vmax = cls.parameters[key].bounds
             parameters[key] = np.random.uniform(vmin, vmax)
+        for key in kwargs:
+            parameters[key] = kwargs[key]
+        return cls(**parameters)
+
+    @classmethod
+    def min(cls, **kwargs):
+        parameters = {}
+        for key in cls.parameters.keys():
+            vmin,vmax = cls.parameters[key].bounds
+            parameters[key] = vmin
+        for key in kwargs:
+            parameters[key] = kwargs[key]
+        return cls(**parameters)
+
+    @classmethod
+    def max(cls, **kwargs):
+        parameters = {}
+        for key in cls.parameters.keys():
+            vmin,vmax = cls.parameters[key].bounds
+            parameters[key] = vmax
         for key in kwargs:
             parameters[key] = kwargs[key]
         return cls(**parameters)
@@ -120,6 +223,7 @@ class Player:
         P, R = P[I], responses[I]
         log_likelihood = R*np.log(P) + (1-R)*(np.log(1-P))
         return -log_likelihood.sum()
+
 
     @classmethod
     def fit(cls, trials, responses, **kwargs):
@@ -153,12 +257,14 @@ class Player:
             player.shortname = "!" + player.shortname
         return player
 
+
 class RandomPlayer(Player):
     """
     Random player that choose first or second option randomly but
     with bias x0. Bias bounds are -3/+3 to be similar to sigmoid
     player.
     """
+
     shortname = "RND"
     parameters = Player.parameters | {
         "x0": Parameter(0.0, (-3.0, +3.0))
@@ -172,6 +278,7 @@ class LeftPlayer(Player):
     """
     Left player only plays left option
     """
+
     shortname = "LPY"
 
     def accept(self, trials):
@@ -181,6 +288,7 @@ class RightPlayer(Player):
     """
     Right player only plays right option
     """
+
     shortname = "RPY"
 
     def accept(self, trials):
@@ -192,6 +300,7 @@ class LazyLeftPlayer(Player):
     Lazy left player plays left option all the time unless there's
     a big reward on the right
     """
+
     shortname = "LazyL"
     parameters = Player.parameters | {
         "delta": Parameter(0.0, (0.0, +6.0))
@@ -207,6 +316,7 @@ class LazyRightPlayer(Player):
     Lazy right player plays right option all the time unless there's
     a big reward on the left.
     """
+
     shortname = "LazyR"
     parameters = Player.parameters | {
         "delta": Parameter(0.0, (0.0, +6.0))
@@ -215,22 +325,23 @@ class LazyRightPlayer(Player):
     def accept(self, trials):
         V1, P1 = trials[:,0], trials[:,1]
         V2, P2 = trials[:,2], trials[:,3]
-        # return np.where((V1-V2) > self.delta, 1.0, 0.0)
         return (V1*P1 - V2*P2) > self.delta
 
 class SigmoidPlayer(Player):
     """
     Player that plays according to a sigmoid applied to the
-    different in expected value between first and second option.
+    difference in expected value between first and second option.
     """
+
     shortname = "SG"
     parameters = Player.parameters | {
         "x0": Parameter(0.0, (-6.0, +6.0)),
-        "mu": Parameter(5.0, ( 0.1, 20.0))
+        "mu": Parameter(1.0, ( 0.1, 20.0))
     }
 
-    def sigmoid(self, X, x0=0.0, mu=1.0):
-        return 1 / (1 + np.exp(-mu*(X - x0)))
+    def sigmoid(self, X):
+        with np.errstate(over='ignore', under='ignore'):
+            return 1 / (1 + np.exp(-self.mu*(X - self.x0)))
 
     def subjective_utility(self, V):
         return V
@@ -245,7 +356,7 @@ class SigmoidPlayer(Player):
         P1 = self.subjective_probability(P1,V1)
         V2 = self.subjective_utility(V2)
         P2 = self.subjective_probability(P2,V2)
-        P = self.sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
+        P = self.sigmoid(V2*P2 - V1*P1)
         return P # Player.accept(self, P)
 
 
@@ -253,6 +364,7 @@ class ProspectPlayer(SigmoidPlayer):
     """
     Generic prospect player with unspecified subjective probability.
     """
+
     shortname = "PT"
     parameters = SigmoidPlayer.parameters | {
         "lambda_": Parameter(1.0, (0.1, 3.0)),
@@ -287,6 +399,7 @@ class ProspectPlayerXX(SigmoidPlayer):
 class ProspectPlayerP1(ProspectPlayer):
     """
     """
+
     shortname = "P1"
     parameters = ProspectPlayer.parameters | {
         "alpha": Parameter(1.0, (0.1, 3.0)),
@@ -345,22 +458,19 @@ class ProspectPlayerGE(ProspectPlayer):
     """
     shortname = "GE"
     parameters = ProspectPlayer.parameters | {
-        "alpha": Parameter(1.0, (0.1, 3.0)),
         "delta": Parameter(1.0, (0.1, 3.0)),
         "gamma": Parameter(1.0, (0.1, 3.0)),
     }
 
     def subjective_probability(self, P, V):
-        return (self.delta*np.power(P,self.alpha) /
-           (self.delta *np.power(P,self.gamma) + np.power(1-P, self.alpha)))
+        return (self.delta*np.power(P,self.gamma) /
+           (self.delta*np.power(P,self.gamma) + np.power(1-P, self.gamma)))
 
 class DualProspectPlayerGE(ProspectPlayer):
     """
     """
     shortname = "GE+"
     parameters = ProspectPlayer.parameters | {
-        "alpha_g": Parameter(1.0, (0.1, 3.0)),
-        "alpha_l": Parameter(1.0, (0.1, 3.0)),
         "delta_g": Parameter(1.0, (0.1, 3.0)),
         "delta_l": Parameter(1.0, (0.1, 3.0)),
         "gamma_g": Parameter(1.0, (0.1, 3.0)),
@@ -369,10 +479,10 @@ class DualProspectPlayerGE(ProspectPlayer):
 
     def subjective_probability(self, P, V):
         return np.where(V > 0,
-                        (self.delta_g*np.power(P,self.alpha_g) /
-                         (self.delta_g *np.power(P,self.gamma_g) + np.power(1-P, self.alpha_g))),
-                        (self.delta_l*np.power(P,self.alpha_l) /
-                         (self.delta_l *np.power(P,self.gamma_l) + np.power(1-P, self.alpha_l))))
+                        (self.delta_g*np.power(P,self.gamma_g) /
+                         (self.delta_g *np.power(P,self.gamma_g) + np.power(1-P, self.gamma_g))),
+                        (self.delta_l*np.power(P,self.gamma_l) /
+                         (self.delta_l *np.power(P,self.gamma_l) + np.power(1-P, self.gamma_l))))
 
 
 class ProspectPlayerTK(ProspectPlayer):
@@ -407,6 +517,8 @@ class DualProspectPlayerTK(ProspectPlayer):
                                    + np.power(1-P, self.alpha_l)), 1/self.alpha_l)))
 
 
+
+
 def show(reference=None, players=[]):
     "Display reference and players parameters side by side"
 
@@ -439,7 +551,7 @@ def show(reference=None, players=[]):
 def evaluate_player_1(player, trials, responses, n=100):
     """
     Make the player play n times the trials and average the
-    difference with reponses.
+    difference with responses.
     """
 
     R = [player.play(trials) for _ in range(n)]
