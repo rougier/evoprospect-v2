@@ -4,7 +4,8 @@ import sys
 import numpy as np
 from collections import namedtuple
 from prettytable import PrettyTable, SINGLE_BORDER
-from scipy.optimize import minimize
+from scipy.optimize import minimize, optimize, newton
+from scipy.interpolate import interp1d
 from lottery import lotteries, generate_trials
 from color import bold, red
 
@@ -121,7 +122,15 @@ function, given a set of trials Ti (P1i,V1i, P2i,V2i) and responses R
 """
 
 
-Parameter = namedtuple('Parameter', ['default', 'bounds'])
+class Parameter:
+    def __init__(self, default, bounds):
+        self.default = default
+        self.bounds = bounds
+        self.interp = interp1d([0.0, 0.5, 1.0], [bounds[0], default, bounds[1]])
+
+    def get_x(self, value):
+        return newton(lambda x: self.interp(x) - value, 0.5)
+
 
 class Player:
     """
@@ -129,6 +138,7 @@ class Player:
     """
     shortname = "GP"
     parameters = { }
+    parameters_x = { }
 
     def __init__(self, *args, **kwargs):
         keys    = list(type(self).parameters.keys())
@@ -136,9 +146,17 @@ class Player:
         self.parameters = { }
         for key, value in zip(keys,values):
             self.parameters[key] = value.default
+            self.parameters_x[key] = type(self).parameters[key].get_x(value.default)
         for key, value in zip(keys[:len(args)], args):
             self.parameters[key] = value
+            self.parameters_x[key] = type(self).parameters[key].get_x(value)
         self.parameters.update(kwargs)
+
+    def __getitem__(self, name):
+        keys = type(self).parameters.keys()
+        if name in keys:
+            return self.parameters[name]
+        raise AttributeError
 
     def __getattr__(self, name):
         keys = type(self).parameters.keys()
@@ -177,7 +195,6 @@ class Player:
         trials = generate_trials(n, lottery)
         responses = self.play(trials)
         return trials, responses
-
 
     @classmethod
     def random(cls, **kwargs):
