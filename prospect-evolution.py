@@ -12,13 +12,26 @@ def mix(player1, player2):
     Player = player1.__class__
     p1 = np.asarray(list(player1.parameters.values()))
     p2 = np.asarray(list(player2.parameters.values()))
+    # Interpolation between p1 and p2
     d = np.random.uniform(0, 1, len(p1))
+    # Mix between p1 and p2
+    # d = np.random.choice([0,1], len(p1))
     p = d*p1 + (1-d)*p2
     return Player(*p)
 
 def crossover(players, rewards):
+
+    # n = len(players)
+    # selection_rate = 0.10
+    # I = np.argsort(-rewards)
+    # I = I[:int(selection_rate*len(I))]
+    # parents = np.random.choice(I, size=(n,2))
+    # children = [mix(players[p1],players[p2]) for p1,p2 in parents]
+    # return children
+
     n = len(players)
-    parents = np.random.choice(np.arange(n), size=(n,2), p=rewards/rewards.sum())
+    P = rewards - np.min(rewards)
+    parents = np.random.choice(np.arange(n), size=(n,2), p=P/P.sum())
     children = [mix(players[p1],players[p2]) for p1,p2 in parents]
     return children
 
@@ -32,16 +45,27 @@ def mutate(players, rate):
     return players
 
 
-n_trials = 100
-n_players = 1000
-n_generation = 1000
-mutation_rate = 0.01
-lottery = L6
+# Lotteries with same expected value
+lottery = np.random.uniform(0, 1, (100,4))
+lottery[:,0] *= 4
+lottery[:,2] *= 4
+lottery[:,3] = (lottery[:,0]*lottery[:,1])/lottery[:,2]
+# lottery = L6
+# lottery = [(v1,p1,v2,p2) for v1,p1,v2,p2 in L6 if v1*p1 == v2*p2]
+
+n_trials = 50
+n_players = 100
+n_generation = 200
+mutation_rate = 0.05
 Player = ProspectPlayerP1
 player_min = Player.min()
 player_max = Player.max()
-# players = [ProspectPlayerP1() for i in range(n_players)]
 players = [Player.random() for i in range(n_players)]
+
+p = np.mean([list(player.parameters.values()) for player in players], axis=0)
+player_mean = Player(*p)
+print("Mean player: ", player_mean)
+print()
 
 for i in tqdm.trange(n_generation):
     trials  = generate_trials(n_trials, lottery)
@@ -51,7 +75,6 @@ for i in tqdm.trange(n_generation):
 
 p = np.mean([list(player.parameters.values()) for player in players], axis=0)
 player_mean = Player(*p)
-
 
 # Display
 # ------------------------------------------------------------------------------
