@@ -184,7 +184,11 @@ class Player:
         parameters = {}
         for key in cls.parameters.keys():
             vmin,vmax = cls.parameters[key].bounds
-            parameters[key] = np.random.uniform(vmin, vmax)
+            vmid = cls.parameters[key].default
+            if np.random.uniform(0,1) < (vmax-vmid)/(vmax-vmin):
+                parameters[key] = np.random.uniform(vmin, vmid)
+            else:
+                parameters[key] = np.random.uniform(vmid, vmax)
         for key in kwargs:
             parameters[key] = kwargs[key]
         return cls(**parameters)
