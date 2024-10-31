@@ -1,135 +1,50 @@
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
-import sys
-import numpy as np
+
 from collections import namedtuple
 from prettytable import PrettyTable, SINGLE_BORDER
-from scipy.optimize import minimize, optimize, newton
-from scipy.interpolate import interp1d
-from lottery import lotteries, generate_trials
-from color import bold, red
+from scipy.optimize import minimize
+from lottery import *
 
-""" Considering that a lottery L(m, p) denotes a gamble that pays m
-(magnitude of the offered reward) with probability p, and 0 otherwise.
-
-Utility functions
------------------
-
-RT: Rational : No parameter
-
-    u(m) = m
-
-PU: Power (isoelastic) utility : 1 parameter (alpha)
-
-    u(m) = m^alpha
-
-TK: Tversky & Kahneman  : 3 parameters (alpha, lambda, beta)
-    D.Kahneman, A.Tversky, Prospect theory: An analysis of decision
-    under risk.Econometrica 47, 263-292 (1979)
-
-    u(m) = | m^alpha if m >= 0
-           | -lambda * (-m)^beta if m < 0
+Parameter = namedtuple('Parameter', ['default', 'bounds'])
+ALPHA_MAX = 2
+ALPHA_MIN = 0.01
+DELTA_MAX = 2
+DELTA_MIN = 0.01
 
 
-u(m) |  Parameters                    | # |
------+--------------------------------+---+
-RT   | -                              | 0 |
-PU   | alpha                          | 1 |
-TK   | alpha, lambda, beta            | 3 |
+class color:
 
+    # Color
+    BLACK = '\033[90m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    GRAY = '\033[97m'
 
-Probability functions
----------------------
+    # Style
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
-RT: Rational : No parameter
+    # BackgroundColor
+    BgBLACK = '\033[40m'
+    BgRED = '\033[41m'
+    BgGREEN = '\033[42m'
+    BgORANGE = '\033[43m'
+    BgBLUE = '\033[44m'
+    BgPURPLE = '\033[45m'
+    BgCYAN = '\033[46m'
+    BgGRAY = '\033[47m'
 
-    w(p) = p
+    # End
+    END = '\033[0m'
 
-TK: Tversky & Kahneman  : 1 parameter (gamma)
-    D.Kahneman, A.Tversky, Prospect theory: An analysis of decision
-    under risk.Econometrica 47, 263-292 (1979)
+def bold(text): return color.BOLD + color.BLACK + text + color.END
 
-    w(p) = (p^gamma) / (p^gamma + (1-p)^gamma)^(1/gamma))
-
-P1: Prelec (1) : 1 parameter (gamma)
-    D.Prelec, The probability weighting function. Econometrica 66, 497–527 (1998)
-
-    w(p) = exp(-(-log p)^gamma)
-
-P2: Prelec (2) : 2 parameters (delta, gamma)
-    D.Prelec, The probability weighting function. Econometrica 66, 497–527 (1998)
-
-    w(p) = exp(-delta*(-log p)^gamma)
-
-GE: Goldstein & Einhorn : 2 parameters (delta, gamma)
-    W. M. Goldstein, H. J. Einhorn, Expression theory and the
-    preference reversal phenomena. Psychol. Rev. 94, 236–254 (1987).
-
-    w(p) = delta*(p^gamma) / (delta*p^gamma + (1-p)^gamma))
-
-
-w(p) |  Parameters                    | # |
------+--------------------------------+---+
-RT   | -                              | 0 |
-TK   | gamma                          | 1 |
-P1   | gamma                          | 1 |
-P2   | delta, gamma                   | 2 |
-GE   | delta, gamma                   | 2 |
-
-
-Decision functions
-------------------
-
-Considering two lotteries L1(m1, p1) and L2(m2,p2), the probability
-P(x) of choosing L1 over L2, with V1 = w(p1)*u(m1), V2 = w(p2)*u(m2),
-x = V1 - V2 is given by:
-
-SG : Sigmoid : 2 parameters (x0, mu)
-
-     P(x) = 1 / (1 + np.exp(-mu*(x-x0)))
-
-LG : Logistic : 1 parameter (mu)
-
-     P(x) = 1 / (1 + exp(−mu*x))
-
-LB : Left bias : no parameter
-
-     P(z) = 0
-
-RB : Right bias : no parameter
-
-     P(z) = 1
-
-LL : Lazy left : one parameter (epsilon)
-
-     P(x) = 0 if x > epsilon 1 else
-
-LR : Lazy right : one parameter (epsilon)
-
-     P(x) = 1 if x < epsilon 0 else
-
-RD : Random : one parameter (epsilon)
-
-     P(x) = 0 if U(0,1) < epsilon else 1bi
-
-
-Evaluation
-----------
-
-Given a player characterized by its utility, probability and decision
-function, given a set of trials Ti (P1i,V1i, P2i,V2i) and responses R
-
-"""
-
-
-class Parameter:
-    def __init__(self, default, bounds):
-        self.default = default
-        self.bounds = bounds
-        self.interp = interp1d([0.0, 0.5, 1.0], [bounds[0], default, bounds[1]])
-
-    def get_x(self, value):
-        return newton(lambda x: self.interp(x) - value, 0.5)
+def red(text): return color.RED + text + color.END
 
 
 class Player:
@@ -138,7 +53,6 @@ class Player:
     """
     shortname = "GP"
     parameters = { }
-    parameters_x = { }
 
     def __init__(self, *args, **kwargs):
         keys    = list(type(self).parameters.keys())
@@ -146,17 +60,9 @@ class Player:
         self.parameters = { }
         for key, value in zip(keys,values):
             self.parameters[key] = value.default
-            self.parameters_x[key] = type(self).parameters[key].get_x(value.default)
         for key, value in zip(keys[:len(args)], args):
             self.parameters[key] = value
-            self.parameters_x[key] = type(self).parameters[key].get_x(value)
         self.parameters.update(kwargs)
-
-    def __getitem__(self, name):
-        keys = type(self).parameters.keys()
-        if name in keys:
-            return self.parameters[name]
-        raise AttributeError
 
     def __getattr__(self, name):
         keys = type(self).parameters.keys()
@@ -177,14 +83,11 @@ class Player:
                            for k, v in self.parameters.items()))
 
     def play(self, trials):
-        "Make player to play given trials and return responses"
-
-        # Compute proability of accepting first option
+        "Make layer play given trials and return responses"
+        # Compute probability of accepting first option
         P = self.accept(trials)
-
         # Actual play
         return (np.random.uniform(0, 1, len(P)) < P).astype(int)
-
 
     def get_data(self, lottery, n=10_000):
         """
@@ -200,9 +103,9 @@ class Player:
     def random(cls, **kwargs):
         parameters = {}
         for key in cls.parameters.keys():
-            vmin,vmax = cls.parameters[key].bounds
+            vmin, vmax = cls.parameters[key].bounds
             vmid = cls.parameters[key].default
-            if np.random.uniform(0,1) < (vmax-vmid)/(vmax-vmin):
+            if np.random.uniform(0, 1) < (vmax - vmid) / (vmax - vmin):
                 parameters[key] = np.random.uniform(vmin, vmid)
             else:
                 parameters[key] = np.random.uniform(vmid, vmax)
@@ -214,7 +117,7 @@ class Player:
     def min(cls, **kwargs):
         parameters = {}
         for key in cls.parameters.keys():
-            vmin,vmax = cls.parameters[key].bounds
+            vmin, vmax = cls.parameters[key].bounds
             parameters[key] = vmin
         for key in kwargs:
             parameters[key] = kwargs[key]
@@ -224,11 +127,20 @@ class Player:
     def max(cls, **kwargs):
         parameters = {}
         for key in cls.parameters.keys():
-            vmin,vmax = cls.parameters[key].bounds
+            vmin, vmax = cls.parameters[key].bounds
             parameters[key] = vmax
         for key in kwargs:
             parameters[key] = kwargs[key]
         return cls(**parameters)
+
+    @classmethod
+    def get_bound(cls, key):
+        for i,p in enumerate(cls.parameters.keys()):
+            if p == key:
+                idx = i
+        bounds = [p.bounds for p in cls.parameters.values()]
+        return bounds[idx]
+
 
 
     @classmethod
@@ -244,7 +156,6 @@ class Player:
         P, R = P[I], responses[I]
         log_likelihood = R*np.log(P) + (1-R)*(np.log(1-P))
         return -log_likelihood.sum()
-
 
     @classmethod
     def fit(cls, trials, responses, **kwargs):
@@ -265,19 +176,20 @@ class Player:
                        bounds=bounds,
                        method="L-BFGS-B",
                        tol=1e-10,
-                       options = {"maxiter": 1000,
+                       options = {"maxiter": 10000,
                                  "disp" : False },
                        args = (trials, responses, kwargs))
         valid = res.success
         player = cls(*res.x)
         # See https://stackoverflow.com/questions/78545168/
         # -> finding-unused-variables-after-minimizing
-        # print(res.jac)
+
+
         player.valid = valid
         if not valid:
             player.shortname = "!" + player.shortname
-        return player
 
+        return player
 
 class RandomPlayer(Player):
     """
@@ -285,11 +197,10 @@ class RandomPlayer(Player):
     with bias x0. Bias bounds are -3/+3 to be similar to sigmoid
     player.
     """
-
     shortname = "RND"
-    parameters = Player.parameters | {
+    parameters = {**Player.parameters, **{
         "x0": Parameter(0.0, (-3.0, +3.0))
-    }
+    }}
 
     def accept(self, trials):
          P = (0.5 - self.x0/3) * np.ones(len(trials))
@@ -299,17 +210,16 @@ class LeftPlayer(Player):
     """
     Left player only plays left option
     """
-
     shortname = "LPY"
 
     def accept(self, trials):
          return np.zeros(len(trials))
 
+
 class RightPlayer(Player):
     """
     Right player only plays right option
     """
-
     shortname = "RPY"
 
     def accept(self, trials):
@@ -321,48 +231,47 @@ class LazyLeftPlayer(Player):
     Lazy left player plays left option all the time unless there's
     a big reward on the right
     """
-
     shortname = "LazyL"
-    parameters = Player.parameters | {
+    parameters = {**Player.parameters, **{
         "delta": Parameter(0.0, (0.0, +6.0))
-    }
+    }}
 
     def accept(self, trials):
-        V1, P1 = trials[:,0], trials[:,1]
-        V2, P2 = trials[:,2], trials[:,3]
+        V1, P1 = trials[:, 0], trials[:, 1]
+        V2, P2 = trials[:, 2], trials[:, 3]
         return (V2*P2 - V1*P1) > self.delta
+
 
 class LazyRightPlayer(Player):
     """
     Lazy right player plays right option all the time unless there's
     a big reward on the left.
     """
-
     shortname = "LazyR"
-    parameters = Player.parameters | {
+    parameters = {**Player.parameters, **{
         "delta": Parameter(0.0, (0.0, +6.0))
-    }
+    }}
 
     def accept(self, trials):
-        V1, P1 = trials[:,0], trials[:,1]
-        V2, P2 = trials[:,2], trials[:,3]
+        V1, P1 = trials[:, 0], trials[:, 1]
+        V2, P2 = trials[:, 2], trials[:, 3]
+        # return np.where((V1-V2) > self.delta, 1.0, 0.0)
         return (V1*P1 - V2*P2) > self.delta
+
 
 class SigmoidPlayer(Player):
     """
     Player that plays according to a sigmoid applied to the
-    difference in expected value between first and second option.
+    different in expected value between first and second option.
     """
-
     shortname = "SG"
-    parameters = Player.parameters | {
-        "x0": Parameter(0.0, (-6.0, +6.0)),
-        "mu": Parameter(1.0, ( 0.1, 20.0))
-    }
+    parameters = {**Player.parameters, **{
+        "x0": Parameter(0.0, (-5.0, +5.0)),
+        "mu": Parameter(3.0, (0.1, 20.0))
+    }}
 
-    def sigmoid(self, X):
-        with np.errstate(over='ignore', under='ignore'):
-            return 1 / (1 + np.exp(-self.mu*(X - self.x0)))
+    def sigmoid(self, X, x0=0.0, mu=1.0):
+        return 1 / (1 + np.exp(-mu*(X - x0)))
 
     def subjective_utility(self, V):
         return V
@@ -371,13 +280,13 @@ class SigmoidPlayer(Player):
         return P
 
     def accept(self, trials):
-        V1, P1 = trials[:,0], trials[:,1]
-        V2, P2 = trials[:,2], trials[:,3]
+        V1, P1 = trials[:, 0], trials[:, 1]
+        V2, P2 = trials[:, 2], trials[:, 3]
         V1 = self.subjective_utility(V1)
         P1 = self.subjective_probability(P1,V1)
         V2 = self.subjective_utility(V2)
         P2 = self.subjective_probability(P2,V2)
-        P = self.sigmoid(V2*P2 - V1*P1)
+        P = self.sigmoid(V2*P2 - V1*P1, self.x0, self.mu)
         return P # Player.accept(self, P)
 
 
@@ -385,29 +294,82 @@ class ProspectPlayer(SigmoidPlayer):
     """
     Generic prospect player with unspecified subjective probability.
     """
-
     shortname = "PT"
-    parameters = SigmoidPlayer.parameters | {
-        "lambda_": Parameter(1.0, (0.1, 3.0)),
-        "rho_g":     Parameter(1.0, (0.1, 3.0)),
-        "rho_l":     Parameter(1.0, (0.1, 3.0))
-    }
+    parameters = {**SigmoidPlayer.parameters, **{
+        "lambda_": Parameter(1.0, (0.2, 10)),
+        "rho_g":     Parameter(1.0, (0.1, 2)),
+        "rho_l":     Parameter(1.0, (0.1, 2))
+    }}
 
     def subjective_utility(self, V):
         return np.where(V > 0,
                         np.power(np.abs(V), self.rho_g),
                         -self.lambda_ * np.power(np.abs(V), self.rho_l))
 
+
+class ProspectPlayerP1(ProspectPlayer):
+    """
+    """
+    shortname = "P1"
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return np.exp(- np.power((-np.log(P)), self.alpha))
+
+
+class ProspectPlayerP2(ProspectPlayer):
+    """
+    """
+    shortname = "P2"
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "delta": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return np.exp(-self.delta*np.power((-np.log(P)), self.alpha))
+
+
+class ProspectPlayerGE(ProspectPlayer):
+    """
+    """
+    shortname = "GE"
+    parameters = {**ProspectPlayer.parameters, **{
+        "delta": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+        "gamma": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return (self.delta*np.power(P,self.gamma) /
+           (self.delta *np.power(P,self.gamma) + np.power(1-P, self.gamma)))
+
+
+class ProspectPlayerTK(ProspectPlayer):
+    """
+    """
+    shortname = "TK"
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return (np.power(P, self.alpha) /
+                np.power((np.power(P, self.alpha)
+                          + np.power(1-P, self.alpha)), 1/self.alpha))
+
+
 class ProspectPlayerXX(SigmoidPlayer):
     """
     Experimental prospect player.
     """
     shortname = "XX"
-    parameters = SigmoidPlayer.parameters | {
-        "gain": Parameter(1.0, (0.1, 3.0)),
-        "alpha_g": Parameter(1.0, (0.1, 3.0)),
-        "alpha_l": Parameter(1.0, (0.1, 3.0)),
-    }
+    parameters = {**SigmoidPlayer.parameters, **{
+        "gain": Parameter(1.0, (0.1, 2.0)),
+        "alpha_g": Parameter(1.0, (0.1, 2.0)),
+        "alpha_l": Parameter(1.0, (0.1, 2.0)),
+    }}
 
     def subjective_utility(self, V):
         return np.where(V > 0, V, self.gain*V)
@@ -417,116 +379,36 @@ class ProspectPlayerXX(SigmoidPlayer):
                         P**self.alpha_g,
                         P**self.alpha_l)
 
-class ProspectPlayerP1(ProspectPlayer):
-    """
-    """
-
-    shortname = "P1"
-    parameters = ProspectPlayer.parameters | {
-        "alpha": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return np.exp(- np.power((-np.log(P)), self.alpha))
-
-
-class DualProspectPlayerP1(ProspectPlayer):
-    """
-    """
-    shortname = "P1+"
-    parameters = ProspectPlayer.parameters | {
-        "alpha_g": Parameter(1.0, (0.1, 3.0)),
-        "alpha_l": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return np.where(V > 0,
-                        np.exp(- np.power((-np.log(P)), self.alpha_g)),
-                        np.exp(- np.power((-np.log(P)), self.alpha_l)))
-
-
-class ProspectPlayerP2(ProspectPlayer):
-    """
-    """
-    shortname = "P2"
-    parameters = ProspectPlayer.parameters | {
-        "alpha": Parameter(1.0, (0.1, 3.0)),
-        "delta": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return np.exp(-self.delta*np.power((-np.log(P)), self.alpha))
-
-class DualProspectPlayerP2(ProspectPlayer):
-    """
-    """
-    shortname = "P2+"
-    parameters = ProspectPlayer.parameters | {
-        "alpha_g": Parameter(1.0, (0.1, 3.0)),
-        "alpha_l": Parameter(1.0, (0.1, 3.0)),
-        "delta_g": Parameter(1.0, (0.1, 3.0)),
-        "delta_l": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return np.where(V > 0,
-                        np.exp(-self.delta_g*np.power((-np.log(P)), self.alpha_g)),
-                        np.exp(-self.delta_l*np.power((-np.log(P)), self.alpha_l)))
-
-
-class ProspectPlayerGE(ProspectPlayer):
-    """
-    """
-    shortname = "GE"
-    parameters = ProspectPlayer.parameters | {
-        "delta": Parameter(1.0, (0.1, 3.0)),
-        "gamma": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return (self.delta*np.power(P,self.gamma) /
-           (self.delta*np.power(P,self.gamma) + np.power(1-P, self.gamma)))
 
 class DualProspectPlayerGE(ProspectPlayer):
     """
     """
     shortname = "GE+"
-    parameters = ProspectPlayer.parameters | {
-        "delta_g": Parameter(1.0, (0.1, 3.0)),
-        "delta_l": Parameter(1.0, (0.1, 3.0)),
-        "gamma_g": Parameter(1.0, (0.1, 3.0)),
-        "gamma_l": Parameter(1.0, (0.1, 3.0)),
-    }
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha_g": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "delta_g": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+        "delta_l": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+        "gamma_g": Parameter(1.0, (0.1, 2)),
+        "gamma_l": Parameter(1.0, (0.1, 2)),
+    }}
 
     def subjective_probability(self, P, V):
         return np.where(V > 0,
-                        (self.delta_g*np.power(P,self.gamma_g) /
-                         (self.delta_g *np.power(P,self.gamma_g) + np.power(1-P, self.gamma_g))),
-                        (self.delta_l*np.power(P,self.gamma_l) /
-                         (self.delta_l *np.power(P,self.gamma_l) + np.power(1-P, self.gamma_l))))
+                        (self.delta_g * np.power(P, self.alpha_g) /
+                         (self.delta_g * np.power(P, self.gamma_g) + np.power(1-P, self.alpha_g))),
+                        (self.delta_l * np.power(P, self.alpha_l) /
+                         (self.delta_l * np.power(P, self.gamma_l) + np.power(1-P, self.alpha_l))))
 
-
-class ProspectPlayerTK(ProspectPlayer):
-    """
-    """
-    shortname = "TK"
-    parameters = ProspectPlayer.parameters | {
-        "alpha": Parameter(1.0, (0.1, 3.0)),
-    }
-
-    def subjective_probability(self, P, V):
-        return (np.power(P, self.alpha) /
-                np.power((np.power(P, self.alpha)
-                          + np.power(1-P, self.alpha)), 1/self.alpha))
 
 class DualProspectPlayerTK(ProspectPlayer):
     """
     """
     shortname = "TK+"
-    parameters = ProspectPlayer.parameters | {
-        "alpha_g": Parameter(1.0, (0.1, 3.0)),
-        "alpha_l": Parameter(1.0, (0.1, 3.0))
-    }
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha_g": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX))
+    }}
 
     def subjective_probability(self, P, V):
         return np.where(V > 0,
@@ -538,6 +420,36 @@ class DualProspectPlayerTK(ProspectPlayer):
                                    + np.power(1-P, self.alpha_l)), 1/self.alpha_l)))
 
 
+class DualProspectPlayerP2(ProspectPlayer):
+    """
+    """
+    shortname = "P2+"
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha_g": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "delta_g": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+        "delta_l": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        np.exp(-self.delta_g*np.power((-np.log(P)), self.alpha_g)),
+                        np.exp(-self.delta_l*np.power((-np.log(P)), self.alpha_l)))
+
+
+class DualProspectPlayerP1(ProspectPlayer):
+    """
+    """
+    shortname = "P1+"
+    parameters = {**ProspectPlayer.parameters, **{
+        "alpha_g": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+    }}
+
+    def subjective_probability(self, P, V):
+        return np.where(V > 0,
+                        np.exp(- np.power((-np.log(P)), self.alpha_g)),
+                        np.exp(- np.power((-np.log(P)), self.alpha_l)))
 
 
 def show(reference=None, players=[]):
@@ -572,7 +484,7 @@ def show(reference=None, players=[]):
 def evaluate_player_1(player, trials, responses, n=100):
     """
     Make the player play n times the trials and average the
-    difference with responses.
+    difference with reponses.
     """
 
     R = [player.play(trials) for _ in range(n)]
@@ -591,6 +503,9 @@ def evaluate_player_2(player, trials, responses, n=1000):
 
     # Get mean response from player for each type of trial played n times
     R = np.mean([player.play(T) for _ in range(n)], axis=0)
+
+    #print(R0)
+    #print(R)
 
     return 1 - np.mean(abs(R0 - R))
 
@@ -628,156 +543,28 @@ def evaluate(reference, players, n=1_000, evaluate_method=evaluate_player_2):
 
 
 if __name__ == "__main__":
-    import warnings
-    from lottery import *
-
-    warnings.filterwarnings('ignore')
-    # np.random.seed(123)
-
 
     # We create a player and make it play lottery 0
     # player = RandomPlayer.random(x0=0)
     # player = SigmoidPlayer.random()
     # player = RightPlayer.random()
     player = ProspectPlayerP2.random(x0=3)
-    # player = SigmoidPlayer.random(x0=0, mu=1)
-
-    # player = LazyLeftPlayer.random()
-    # player = LazyLeftPlayer(delta=2)
-
-    # player = ProspectPlayerP2.random(x0=1.5, rho_g=1, rho_l=1)
     trials = generate_trials(5_000, L0)
     responses = player.play(trials)
 
-    print("Bias: %.3f / %.3f" % (
-        responses.sum()/len(responses),
-        1-responses.sum()/len(responses)))
-
-
-
     # We try to fit each player against player
     players = [ RandomPlayer.fit(trials, responses),
-    #            LazyRightPlayer.fit(trials, responses),
-    #            LazyLeftPlayer.fit(trials, responses),
                 SigmoidPlayer.fit(trials, responses),
                 ProspectPlayerP1.fit(trials, responses),
                 ProspectPlayerP2.fit(trials, responses),
                 ProspectPlayerGE.fit(trials, responses),
                 ProspectPlayerTK.fit(trials, responses) ]
-
     show(player, players)
     evaluate(player, players, 100, evaluate_player_2)
 
 
-    # # We create a player and make it play lottery 0
-    # # player = RandomPlayer.random(bias=0)
-    # # player = SigmoidPlayer.random()
-    # player = ProspectPlayerP1.random()
-    # trials = generate_trials(5_000, L0)
-    # responses = player.play(trials)
-
-    # # We try to fit each player against player
-    # players = [ RandomPlayer.fit(trials, responses),
-    #             SigmoidPlayer.fit(trials, responses),
-    #             ProspectPlayerP1.fit(trials, responses),
-    #             ProspectPlayerP2.fit(trials, responses),
-    #             ProspectPlayerGE.fit(trials, responses),
-    #             ProspectPlayerTK.fit(trials, responses) ]
-
-    # show(player, players)
-    # evaluate(player, players, 100, evaluate_player_2)
-
-    # print()
-    # players = [ DualProspectPlayerP1.fit(trials, responses),
-    #             DualProspectPlayerP2.fit(trials, responses),
-    #             DualProspectPlayerGE.fit(trials, responses),
-    #             DualProspectPlayerTK.fit(trials, responses) ]
-
-    # show(player, players)
-    # evaluate(player, players, 100, evaluate_player_2)
-
-
-
-    # # Confusion matrix (players/players)
-    # # ------------------------------------------------------------------
-    # players = [ RandomPlayer,
-    #             SigmoidPlayer,
-    #             ProspectPlayerXX,
-    #             DualProspectPlayerP1,
-    #             DualProspectPlayerP2,
-    #             DualProspectPlayerGE,
-    #             DualProspectPlayerTK,
-    #             ProspectPlayerP1,
-    #             ProspectPlayerP2,
-    #             ProspectPlayerGE,
-    #             ProspectPlayerTK]
-
-    # x = PrettyTable(border=True, align="l")
-    # x.set_style(SINGLE_BORDER)
-    # x.field_names = ([bold("Players")] +
-    #                  [bold(p.shortname) for p in players])
-
-    # trials = generate_trials(5_000, L0)
-    # for target in players:
-    #     target = target.random()
-    #     responses = target.play(trials)
-
-    #     name = target.shortname
-
-    #     P = [p.fit(trials, responses) for p in players]
-    #     R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
-    #     Rmin, Rmax = np.min(R), np.max(R)
-    #     for i in range(len(R)):
-    #         if abs(R[i] - Rmax) < 1e-5:
-    #             R[i] = bold("%.3f" % R[i])
-    #         elif abs(R[i] - Rmin) < 1e-3:
-    #             R[i] = red("%.3f" % R[i])
-    #         else:
-    #             R[i] = "%.3f" % R[i]
-    #     x.add_row([name] + R)
-    # print(x)
 
 
 
 
-    # Confusion matrix (players/monkeys)
-    # ------------------------------------------------------------------
-    # from monkey import monkeys
 
-    # np.random.seed(1)
-    # players = [ RandomPlayer,
-    #             SigmoidPlayer,
-    #             ProspectPlayerXX,
-    #             DualProspectPlayerP1,
-    #             DualProspectPlayerP2,
-    #             DualProspectPlayerGE,
-    #             DualProspectPlayerTK,
-    #             ProspectPlayerP1,
-    #             ProspectPlayerP2,
-    #             ProspectPlayerGE,
-    #             ProspectPlayerTK]
-
-
-    # x = PrettyTable(border=True, align="l")
-    # x.set_style(SINGLE_BORDER)
-    # x.field_names = ([bold("Players")] +
-    #                  [bold(p.shortname) for p in players])
-
-    # trials = generate_trials(5_000, L0)
-
-    # for monkey in monkeys:
-    #     trials, responses = monkey.get_data(lottery=0)
-    #     name = monkey.shortname
-
-    #     P = [p.fit(trials, responses) for p in players]
-    #     R = [evaluate_player_2(p, trials, responses, 1000) for p in P]
-    #     Rmin, Rmax = np.min(R), np.max(R)
-    #     for i in range(len(R)):
-    #         if abs(R[i] - Rmax) < 1e-5:
-    #             R[i] = bold("%.3f" % R[i])
-    #         elif abs(R[i] - Rmin) < 1e-3:
-    #             R[i] = red("%.3f" % R[i])
-    #         else:
-    #             R[i] = "%.3f" % R[i]
-    #     x.add_row([name] + R)
-    # print(x)

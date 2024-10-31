@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # np.random.seed(1)
     warnings.filterwarnings('ignore')
-    filename = "./fit-precision-2000-100.npy"
+    filename = "./data/fit-precision-2000-100.npy"
 
     N = (list(range(   1,      10,   1)) +
          list(range(  10,    100,   10)) +
