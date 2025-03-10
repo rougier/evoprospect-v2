@@ -38,7 +38,7 @@ def get_trials(subject_id=None, task_id=None, date_range=None, return_rewards=Fa
     else:
         df = data
 
-    trials = df[["V_left", "P_left", "V_right", "P_right"]]
+    trials = df[["V1_left", "P1_left", "V1_right", "P1_right"]]
     responses = df["response"]
     if return_rewards:
         rewards = df['reward']
