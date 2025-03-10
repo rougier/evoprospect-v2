@@ -21,9 +21,9 @@ colors = [cm.to_hex(plt.cm.tab20(i)) for i in range(24)]
 
 #selected monkeys for the ELO analysis (biased monkeys rejected)
 MONKEYS = ['abr', 'ala', 'alv', 'bar', 'ber', 'ces', 'dor', 'eri', 'fic', 'her', 'hor', 'las',
-           'nem', 'oll', 'pac', 'yoh', 'gan', 'ola']
+           'nem', 'oll', 'pac', 'yoh', 'gan', 'ola', 'anu', 'jea', 'ner', 'yin', 'olg', 'pat']
 
-REJECTED_MONKEYS = ['anu', 'jea', 'ner', 'yin', 'olg', 'pat']
+REJECTED_MONKEYS = []
 
 all_monkeys = np.concatenate((MONKEYS, REJECTED_MONKEYS))
 monkey_colors = dict(zip(all_monkeys, colors))
@@ -345,7 +345,7 @@ def built_table_static_1500_best(save=False):
 def built_table_dynamic_per_period(save=False):
     from monkey import Monkey
     elo = pd.read_csv('./data/elo_periods.csv')
-    for cls in [ProspectPlayerP1, ProspectPlayerTK, DualProspectPlayerP1, DualProspectPlayerTK]:
+    for cls in [DualProspectPlayerP1]:
         columns = np.concatenate((['monkey', 'elo',  'date_start', 'date_end', 'fit_score', 'model', 'lottery'],
                                   list(cls.parameters.keys())))
         # Create empty dataframe that stores all PT parameters per monkey
@@ -354,7 +354,7 @@ def built_table_dynamic_per_period(save=False):
         for index, row in elo.iterrows():
             monkey_name = row['mkname']
             data_list = []
-            for i in range(1, 6):
+            for i in range(1, 148):
                 if not pd.isna(row[f'start_{str(i)}']) and not pd.isna(row[f'end_{str(i)}']):
                     monkey = Monkey(monkey_name, date_range=[row[f'start_{str(i)}'], row[f'end_{str(i)}']])
                     trials, responses = monkey.get_data(lottery=0)
