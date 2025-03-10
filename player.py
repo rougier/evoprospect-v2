@@ -7,10 +7,10 @@ from scipy.optimize import minimize
 from lottery import *
 
 Parameter = namedtuple('Parameter', ['default', 'bounds'])
-ALPHA_MAX = 2
-ALPHA_MIN = 0.01
-DELTA_MAX = 2
-DELTA_MIN = 0.01
+ALPHA_MAX = 10
+ALPHA_MIN = 0.1
+DELTA_MAX = 3
+DELTA_MIN = 0.1
 
 
 class color:
@@ -267,7 +267,7 @@ class SigmoidPlayer(Player):
     shortname = "SG"
     parameters = {**Player.parameters, **{
         "x0": Parameter(0.0, (-5.0, +5.0)),
-        "mu": Parameter(3.0, (0.1, 20.0))
+        "mu": Parameter(3.0, (0.1, 10))
     }}
 
     def sigmoid(self, X, x0=0.0, mu=1.0):
@@ -296,15 +296,15 @@ class ProspectPlayer(SigmoidPlayer):
     """
     shortname = "PT"
     parameters = {**SigmoidPlayer.parameters, **{
-        "lambda_": Parameter(1.0, (0.2, 10)),
-        "rho_g":     Parameter(1.0, (0.1, 2)),
-        "rho_l":     Parameter(1.0, (0.1, 2))
+        "lambda_": Parameter(1.0, (0.1, 10)),
+        "rho_g":     Parameter(1.0, (-2.5, +2.5)),
+        "rho_l":     Parameter(1.0, (-2.5, +2.5))
     }}
 
     def subjective_utility(self, V):
         return np.where(V > 0,
-                        np.power(np.abs(V), self.rho_g),
-                        -self.lambda_ * np.power(np.abs(V), self.rho_l))
+                        np.power(V, (1 - self.rho_g)),
+                        -self.lambda_ * np.power(np.abs(V), (1 + self.rho_l)))
 
 
 class ProspectPlayerP1(ProspectPlayer):
@@ -366,10 +366,10 @@ class ProspectPlayerXX(SigmoidPlayer):
     """
     shortname = "XX"
     parameters = {**SigmoidPlayer.parameters, **{
-        "gain": Parameter(1.0, (0.1, 2.0)),
-        "alpha_g": Parameter(1.0, (0.1, 2.0)),
-        "alpha_l": Parameter(1.0, (0.1, 2.0)),
-    }}
+        "gain": Parameter(1.0, (0.1, 10)),
+        "alpha_g": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+        "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
+}}
 
     def subjective_utility(self, V):
         return np.where(V > 0, V, self.gain*V)
@@ -389,8 +389,8 @@ class DualProspectPlayerGE(ProspectPlayer):
         "alpha_l": Parameter(1.0, (ALPHA_MIN, ALPHA_MAX)),
         "delta_g": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
         "delta_l": Parameter(1.0, (DELTA_MIN, DELTA_MAX)),
-        "gamma_g": Parameter(1.0, (0.1, 2)),
-        "gamma_l": Parameter(1.0, (0.1, 2)),
+        "gamma_g": Parameter(1.0, (0.1, 3)),
+        "gamma_l": Parameter(1.0, (0.1, 3)),
     }}
 
     def subjective_probability(self, P, V):
