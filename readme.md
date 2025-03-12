@@ -1,4 +1,6 @@
 # Content 
+We developed a Python framework to study risk-taking behavior in a group of monkeys during gambling tasks. This framework enables fitting various Prospect Theory (PT) models, based on Kahneman and Tversky (1979), to a dataset of monkey behavioral responses. It allows for comparisons between observed behavior and rational decision-making models. Additionally, we analyze the social hierarchy—determined by each monkey’s Elo score—to explore potential correlations and interactions between decision-making behavior and social ranking.
+
 
 # Dependencies
 
@@ -17,8 +19,14 @@
 
 The notebooks primarily focus on cleaning and analyzing the dataset that compiles all monkey data from the economic risky decision-making task.
 
-`05-bias-analysis`: figures related to the bias analysis. 
+`00-common`: gather common functions used in other notenook. 
+`01-preprocessing`: read and process the original dataset to ensure that tasks are named properly. The original dataset is untouched and the processed dataset is saved using an alternative filename.
+`02-dataset-analysis`:  allows to have a first overview of the cleaned datset
+`03-task-analysis`:  allows to have a first overview of the cleaned datset
+`04-decision-fit`: fit subjects response to measure their willingness to choose one option over the other (sigmoid fit).
+`05-bias-analysis`: plot figures related to the bias analysis. 
 `06-prospect-fit`: fit the models and save in json files. 
+`07-prospect-fit`: plot the evolution of the elo-score per monkey over time.
 
 
 # Python files 
