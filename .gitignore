@@ -2,4 +2,14 @@
 __pycache__
 .ipynb_checkpoints
 data/data-processed.csv
+06-prospect-fit.ipynb
+07-elo-score-analysis.ipynb
+final_result_analysis.py
+plot_PT_functions.py
+data/reaction_times
+data/dates_limits.csv
+data/elo_matrix_Tonk.xlsx
+data/elo_periods.csv
+data/monkey_biases.json
+results-fits/
 
