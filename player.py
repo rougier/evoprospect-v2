@@ -1,10 +1,25 @@
+# Social hierarchy influences monkeys' risky decisions
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
+"""
+This script defines various decision-making models based on subjective utility and probability weighting functions.
+
+Key components:
+- **Utility Functions**: Implements a subjective utility function that transforms objective values into perceived
+ values using parameters for gain, loss, and risk aversion.
+- **Probability Weighting Functions**: Defines several probability transformation models, including the Prelec (P1, P2),
+ Tversky-Kahneman (TK), and generalized (GE) functions,
+ to model how probabilities are perceived differently from their objective values.
+- **Visualization Functions**: Uses Matplotlib to plot the range of subjective utility and probability transformations
+- **Fitting and Mean Computation**: Computes and visualizes the mean fit of model parameters based on input data,
+helping analyze human decision behavior.
+"""
 
 from collections import namedtuple
 from prettytable import PrettyTable, SINGLE_BORDER
 from scipy.optimize import minimize
 from lottery import *
+
 
 Parameter = namedtuple('Parameter', ['default', 'bounds'])
 ALPHA_MAX = 2
@@ -14,7 +29,6 @@ DELTA_MIN = 0.01
 
 
 class color:
-
     # Color
     BLACK = '\033[90m'
     RED = '\033[91m'

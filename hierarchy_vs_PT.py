@@ -1,3 +1,4 @@
+# Social hierarchy influences monkeys' risky decisions
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
 
@@ -15,11 +16,36 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import linregress
+
+"""
+Elo Score and Reaction Time Analysis for Monkeys
+
+This script processes and analyzes Elo scores and reaction times (RT) for monkeys in different experimental settings.
+It includes functions to compute and visualize the relationship between Elo scores and RTs across various periods
+(static, dynamic, and best trials). Additionally, it extracts and processes Prospect Theory (PT) parameters and
+their relation to Elo scores.
+
+Main functionalities:
+- `build_table_static_all_dataset()`: Creates a CSV table with mean Elo scores and PT parameters per monkey.
+- `RT_analysis_1500_best_static()`: Analyzes RT for the 1500 best trials per monkey.
+- `RT_analysis_all_dataset()`: Computes RT vs. Elo for all available trials.
+- `RT_analysis_dynamic()`: Examines RT vs. Elo across different experimental periods.
+- `plot_elo_periods()`: Visualizes the Elo progression of a given monkey over time.
+
+Data sources:
+- `elo-scores.xlsx`: Contains Elo scores recorded over time.
+- `elo_periods.csv`: Stores predefined Elo periods for different monkeys.
+- `dates_limits.csv`: Defines start and end dates for each subject.
+"""
+
+
+
 warnings.filterwarnings('ignore')
 
 colors = [cm.to_hex(plt.cm.tab20(i)) for i in range(24)]
 
-#selected monkeys for the ELO analysis (biased monkeys rejected)
+
+# Selected monkeys for the ELO analysis (biased monkeys rejected)
 MONKEYS = ['abr', 'ala', 'alv', 'bar', 'ber', 'ces', 'dor', 'eri', 'fic', 'her', 'hor', 'las',
            'nem', 'oll', 'pac', 'yoh', 'gan', 'ola']
 
@@ -29,7 +55,84 @@ all_monkeys = np.concatenate((MONKEYS, REJECTED_MONKEYS))
 monkey_colors = dict(zip(all_monkeys, colors))
 
 
+def built_table_dynamic_per_period(save=False):
+    """
+    Constructs a dataset of decision-making parameters fitted to monkeys' behavior over multiple time periods.
+
+    The function processes ELO rating data and fits different Prospect Theory models to behavioral trial data
+    for each monkey in multiple time periods. It evaluates the models and stores relevant parameters in a
+    structured DataFrame.
+
+    Steps:
+    1. Load ELO ratings from 'elo_periods.csv'.
+    2. Iterate over four decision models: ProspectPlayerP1, ProspectPlayerTK, DualProspectPlayerP1, DualProspectPlayerTK.
+    3. For each monkey and valid time period:
+       - Retrieve behavioral data (trials, responses).
+       - Fit a model and compute a fit score.
+       - Store the monkey's name, ELO score, model parameters, and fit score.
+    4. Drop rows with missing ELO values.
+    5. Optionally save the resulting dataset as a CSV file.
+
+    Args:
+        save (bool): If True, saves the dataset to a CSV file.
+
+    Returns:
+        None
+    """
+    from monkey import Monkey
+    elo = pd.read_csv('./data/elo_periods.csv')
+    for cls in [ProspectPlayerP1, ProspectPlayerTK, DualProspectPlayerP1, DualProspectPlayerTK]:
+        columns = np.concatenate((['monkey', 'elo',  'date_start', 'date_end', 'fit_score', 'model', 'lottery'],
+                                  list(cls.parameters.keys())))
+        # Create empty dataframe that stores all PT parameters per monkey
+        df = pd.DataFrame(columns=columns)
+        # Iterate through rows
+        for index, row in elo.iterrows():
+            monkey_name = row['mkname']
+            data_list = []
+            for i in range(1, 6):
+                if not pd.isna(row[f'start_{str(i)}']) and not pd.isna(row[f'end_{str(i)}']):
+                    monkey = Monkey(monkey_name, date_range=[row[f'start_{str(i)}'], row[f'end_{str(i)}']])
+                    trials, responses = monkey.get_data(lottery=0)
+                    player = cls.fit(trials, responses)
+                    score = evaluate_player_2(player, trials, responses, 1000)
+                    new_row = {'monkey': monkey_name, 'elo': row[f'eloscore{str(i)}'],
+                               'date_start': row[f'start_{str(i)}'], 'date_end': row[f'end_{str(i)}'],
+                               'fit_score': score, 'model': player.shortname, 'lottery': 0}
+                    for param_name in list(player.parameters.keys()):
+                        new_row[param_name] = player.parameters[param_name]
+                    data_list.append(new_row)
+            for row in data_list:
+                df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+        df = df.dropna(subset=['elo'])
+        print(df)
+        #plot_linear_regression(df)
+        if save:
+            df.to_csv(f'elo_dynamic_L0_{player.shortname}.csv')
+
+
 def plot_all_elo_rates(smoothed=False):
+    """
+        Plots Elo ratings of monkeys over time, with optional smoothing.
+
+        This function reads Elo ratings from an Excel file and visualizes their evolution from 2020 to 2023.
+        It provides an option to smooth the data using the Savitzky-Golay filter and highlights specific time
+        periods with thicker lines and color adjustments.
+
+        Features:
+        - Filters data between January 2020 and August 2023.
+        - Excludes rejected monkeys from plotting.
+        - Highlights specific periods using thicker lines for high-Elo periods.
+        - Optionally applies a smoothing filter to reduce noise.
+        - Adds a special white curve effect for selected monkeys in a given time range.
+        - Includes a custom legend indicating significant Elo periods.
+
+        Args:
+            smoothed (bool): If True, applies the Savitzky-Golay filter for a smoother plot.
+
+        Returns:
+            None
+        """
     elo_rates = pd.read_excel('./data/elo_matrix_Tonk.xlsx')
 
     elo_rates.rename(columns={'oli': 'oll'}, inplace=True)
@@ -247,11 +350,14 @@ def plot_linear_regression(df_PT):
 
 
 def build_table_static_all_dataset(lottery=0, save=False):
-    """ Create a csv table with the mean elo score and the PT parameters per monkey,
-        considering all the trials
-    Args
-        lottery: int 0 if all trials considered, 67 if only on risky trials
-        """
+    """
+    Create a CSV table with the mean Elo score and PT parameters per monkey,
+    considering all the trials.
+
+    Args:
+        lottery (int): 0 if all trials are considered, 67 if only risky trials are considered.
+        save (bool): If True, saves the generated table as a CSV file.
+    """
     if lottery == 0:
          result_file = 'results-fits/monkey-analysis-L0'
     elif lottery == 67:
@@ -342,69 +448,13 @@ def built_table_static_1500_best(save=False):
             df_PT.to_csv(f'elo_1500best_L0_{player.shortname}.csv')
 
 
-def built_table_dynamic_per_period(save=False):
-    from monkey import Monkey
-    elo = pd.read_csv('./data/elo_periods.csv')
-    for cls in [ProspectPlayerP1, ProspectPlayerTK, DualProspectPlayerP1, DualProspectPlayerTK]:
-        columns = np.concatenate((['monkey', 'elo',  'date_start', 'date_end', 'fit_score', 'model', 'lottery'],
-                                  list(cls.parameters.keys())))
-        # Create empty dataframe that stores all PT parameters per monkey
-        df = pd.DataFrame(columns=columns)
-        # Iterate through rows
-        for index, row in elo.iterrows():
-            monkey_name = row['mkname']
-            data_list = []
-            for i in range(1, 6):
-                if not pd.isna(row[f'start_{str(i)}']) and not pd.isna(row[f'end_{str(i)}']):
-                    monkey = Monkey(monkey_name, date_range=[row[f'start_{str(i)}'], row[f'end_{str(i)}']])
-                    trials, responses = monkey.get_data(lottery=0)
-                    player = cls.fit(trials, responses)
-                    score = evaluate_player_2(player, trials, responses, 1000)
-                    new_row = {'monkey': monkey_name, 'elo': row[f'eloscore{str(i)}'],
-                               'date_start': row[f'start_{str(i)}'], 'date_end': row[f'end_{str(i)}'],
-                               'fit_score': score, 'model': player.shortname, 'lottery': 0}
-                    for param_name in list(player.parameters.keys()):
-                        new_row[param_name] = player.parameters[param_name]
-                    data_list.append(new_row)
-            for row in data_list:
-                df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
-        df = df.dropna(subset=['elo'])
-        print(df)
-        #plot_linear_regression(df)
-        if save:
-            df.to_csv(f'elo_dynamic_L0_{player.shortname}.csv')
-
-
-def RT_analysis_1500_best_static():
-    from monkey import data
-    data = data.dropna(subset=['response'])
-    elo = pd.read_csv('./data/elo_periods.csv')
-    elo_1500_best = elo[['mkname', 'elo_best', 'start', 'end']]
-    df_RT = pd.DataFrame(columns=['monkey', 'elo', 'RT', 'date_start', 'date_end'])
-    for index, row in elo_1500_best.iterrows():
-        monkey = row['mkname']
-        RT_mean = data[(data['subject_id'] == monkey) & (data['date'] >= row['start'])
-                       & (data['date'] <= row['end'])]['RT'].mean()
-        new_row = {'monkey': monkey, 'elo': row['elo_best'], 'RT': RT_mean, 'date_start': row['start'],
-                   'date_end': row['end']}
-        df_RT = df_RT.append(new_row, ignore_index=True)
-    print(df_RT)
-    df_RT.to_csv('./data/reaction_times/static_RT_elo.csv')
-    fig, ax = plt.subplots(figsize=(9,7))
-    ax.set_title('Mean Reaction Time vs Elo-score during the 1500 best trials', fontsize=14, fontweight='bold')
-    for index, row in df_RT.iterrows():
-        ax.scatter(row['elo'], row['RT'], label=row['monkey'], color=monkey_colors[row['monkey']],
-                   edgecolor='grey', alpha=0.7, s=80)
-    plot_scatter_regression(df_RT, 'elo', 'RT', ax)
-    fig.legend(fontsize=12, ncol=8, bbox_to_anchor=(1, 0.2))
-    plt.xlabel('Elo-score')
-    plt.ylabel('Reaction time')
-    plt.tight_layout()
-    plt.subplots_adjust(bottom=0.3)
-    plt.show()
-
-
 def RT_analysis_all_dataset():
+    """
+    Analyze reaction times (RT) against Elo scores for the entire dataset.
+
+    This function calculates the mean reaction time per monkey, considering all trials.
+    It generates a scatter plot with a regression line to visualize the relationship.
+    """
     from monkey import data
     data = data.dropna(subset=['response'])
     date_limits = pd.read_csv('./data/dates_limits.csv')
@@ -440,6 +490,12 @@ def RT_analysis_all_dataset():
 
 
 def RT_analysis_dynamic():
+    """
+        Analyze reaction times (RT) against dynamically changing Elo scores.
+
+        This function processes reaction times across multiple Elo periods per monkey,
+        capturing variations over time. It generates a scatter plot to visualize these dynamics.
+        """
     from monkey import data
     data = data.dropna(subset=['response'])
     elo = pd.read_csv('./data/elo_periods.csv')
@@ -545,6 +601,15 @@ def plot_elo(elo_rates, monkey, range_dates, data, smoothed=False):
 
 
 def plot_elo_periods(monkey):
+    """
+     Plots the Elo score progression for a given monkey.
+
+     Args:
+         monkey (str): The identifier of the monkey whose Elo scores should be plotted.
+
+     This function reads Elo scores from an Excel file and predefined Elo periods from a CSV file.
+     It filters the data to only include dates after February 22, 2020.
+     """
     from monkey import data
     all_elo = pd.read_excel('./data/elo-scores.xlsx')
     elo_periods = pd.read_csv('./data/elo_periods.csv')

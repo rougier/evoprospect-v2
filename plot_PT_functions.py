@@ -1,5 +1,18 @@
-# Copyright 2024 (c) aomi Chaix-Echel & Nicolas P Rougier
+# Social hierarchy influences monkeys' risky decisions
+# Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
+"""
+This script allows to visualize all the decision-making models
+ based on subjective utility and probability weighting functions.
+
+Key components:
+- **Subjectivre utility Functions**: Implements a subjective utility function that transforms objective values
+                        into perceived values using parameters for gain, loss, and risk aversion.
+- **Probability Weighting Functions**: Defines several probability transformation models,
+                                    including the Prelec (P1, P2), Tversky-Kahneman (TK), and generalized (GE) functions,
+                                     to model how probabilities are perceived differently from their objective values.
+"""
+
 from player import *
 import matplotlib.pyplot as plt
 import pickle

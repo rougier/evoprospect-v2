@@ -1,6 +1,7 @@
-# Copyright 2024 (c) aomi Chaix-Echel & Nicolas P Rougier
+# Social hierarchy influences monkeys' risky decisions
+# Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
-import matplotlib.pyplot as plt
+
 
 from player import *
 from monkey import monkeys

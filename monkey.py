@@ -1,5 +1,26 @@
+# Social hierarchy influences monkeys' risky decisions
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
+
+"""
+This script processes experimental data from a behavioral study involving monkeys.
+It loads trial data from a CSV file, extracts relevant trials based on different
+conditions.
+
+1. **Functions for Data Extraction**
+   - `get_trials(subject_id, task_id, date_range, return_rewards)`:
+     Retrieves trials based on specific conditions (subject, task, and date).
+   - `print_n_trials_per_monkey()`:
+     Prints the number of trials per monkey for each lottery condition.
+
+3. **Monkey Class**
+   - Represents a monkey's dataset, storing trials and responses.
+   - Computes bias (0.5 - the proportion of right-side choices).
+   - Provides `get_data(lottery, n, n_last, return_rewards)` to extract trials.
+
+4. **Execution**
+   - Creates `Monkey` objects for each subject.
+   - Initializes and prints trial counts per monkey. """
 
 import numpy as np
 import pandas as pd
@@ -16,6 +37,9 @@ task_ids = np.sort(data['task_id'].unique())
 
 
 def get_trials(subject_id=None, task_id=None, date_range=None, return_rewards=False):
+    """Retrieves trial data for a specific monkey, task, and/or date range.
+    If return_rewards is True, the function also returns rewards."""
+
     if isinstance(subject_id, str):
         subject_id = [subject_id]
     if isinstance(task_id, int):
@@ -48,6 +72,8 @@ def get_trials(subject_id=None, task_id=None, date_range=None, return_rewards=Fa
 
 
 def print_n_trials_per_monkey():
+    """ Prints the number of trials each monkey has participated
+    in for each lottery condition (L1 to L7) in a formatted table."""
     x = PrettyTable(border=True, align="l")
     x.set_style(SINGLE_BORDER)
     x.field_names = (["Lottery"] + ['L{}'.format(str(lottery)) for lottery in range(1, 8)])

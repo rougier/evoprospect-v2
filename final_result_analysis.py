@@ -1,5 +1,41 @@
+# Social hierarchy influences monkeys' risky decisions
 # Copyright 2024 (c) Naomi Chaix-Echel & Nicolas P Rougier
 # Released under a BSD 2-clauses license
+
+"""
+This script provides a collection of statistical functions for analyzing experimental data, 
+performing hypothesis testing, and evaluating model performance. 
+
+Functions:
+----------
+1. pairwise_t_test(df)
+   - Performs pairwise independent t-tests between all groups in a given DataFrame.
+   - Returns t-statistics and p-values for each pair.
+
+2. compute_mean_parameter_values(excluded_monkeys, models)
+   - Computes the mean parameter values for different models while excluding certain subjects.
+   - Returns a DataFrame containing the averaged parameter values per model.
+
+3. plot_score_selected_models(file_scores, file_params)
+   - Loads model scores and parameters, formats them into a table, and highlights the best/worst performers.
+   - Uses ANSI color codes for terminal output.
+
+4. compute_ANOVA(data_dict)
+   - Conducts a one-way ANOVA test to compare multiple groups.
+
+5. compute_average_score(params, lottery)
+   - Computes and displays the average model score for different experimental conditions.
+   - Uses Bayesian Information Criterion (BIC) for model evaluation.
+
+6. calculate_bic(y, y_pred, p)
+   - Computes the Bayesian Information Criterion (BIC) given actual vs. predicted values.
+   - Helps in comparing different models based on goodness-of-fit.
+
+7. compute_mean_BIC(params, lottery)
+   - Calculates and displays the mean BIC values across different models.
+   - Performs ANOVA on BIC values to assess statistical significance.
+"""
+
 import pickle
 from scipy import stats
 from prettytable import SINGLE_BORDER
@@ -7,21 +43,46 @@ import pandas as pd
 from player import *
 from monkey import monkeys
 from sklearn.metrics import mean_squared_error
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from itertools import combinations
 
 
 def pairwise_t_test(df):
-        results = []
-        groups = list(df.columns)
-        for (group1, group2) in combinations(groups, 2):
-            t_stat, p_val = stats.ttest_ind(df[group1].dropna(), df[group2].dropna(), equal_var=False)
-            results.append((group1, group2, t_stat, p_val))
-        return results
+    """
+        Performs independent t-tests between all possible pairs of groups (columns) in a given DataFrame.
+
+        The function assumes that each column in the DataFrame represents a different group, and it
+        performs Welch’s t-test (which does not assume equal variances) for each pair of columns.
+
+        Parameters:
+        df (pd.DataFrame): A DataFrame where each column represents a different group.
+
+        Returns:
+        list of tuples: A list containing tuples of the form (group1, group2, t_statistic, p_value).
+        """
+    results = []
+    groups = list(df.columns)
+    for (group1, group2) in combinations(groups, 2):
+        t_stat, p_val = stats.ttest_ind(df[group1].dropna(), df[group2].dropna(), equal_var=False)
+        results.append((group1, group2, t_stat, p_val))
+    return results
 
 
 def compute_mean_parameter_values(excluded_monkeys=['ANU', 'NER', 'YIN', 'OLG', 'JEA', 'PAT', 'YOH', 'GAN'],
                                   models=['SG', 'TK', 'P1', 'P2', 'GE', 'TK+', 'P1+', 'P2+', 'GE+'] ):
+    """
+        Computes the mean parameter values for each model across monkeys, excluding specified monkeys.
+
+        This function loads parameter data from a pickle file, processes it to extract parameter values for each model,
+        and computes the mean parameter values, returning a formatted DataFrame.
+
+        Parameters:
+        excluded_monkeys (list, optional): A list of monkey identifiers to exclude from analysis.
+                                            Defaults to ['ANU', 'NER', 'YIN', 'OLG', 'JEA', 'PAT', 'YOH', 'GAN'].
+        models (list, optional): A list of model names to include in the analysis.
+                                 Defaults to ['SG', 'TK', 'P1', 'P2', 'GE', 'TK+', 'P1+', 'P2+', 'GE+'].
+        Returns:
+        pd.DataFrame: A DataFrame where each row represents a model, and columns represent mean parameter values.
+        """
     with open('results-fits/monkey-analysis-L0-params.pkl', 'rb') as file:
         params = pickle.load(file)
     means = {}  
@@ -47,6 +108,22 @@ def compute_mean_parameter_values(excluded_monkeys=['ANU', 'NER', 'YIN', 'OLG', 
 
 def plot_score_selected_models(file_scores='results-fits/monkey-analysis-L0-score.pkl',
                                file_params='results-fits/monkey-analysis-L0-params.pkl'):
+    """
+        Generates a formatted table displaying scores of selected models for each monkey.
+
+        This function loads score and parameter data from pickle files, extracts scores for specific models,
+        and highlights the minimum and maximum scores.
+
+        Parameters:
+        file_scores (str, optional): Path to the pickle file containing score data.
+                                     Defaults to 'results-fits/monkey-analysis-L0-score.pkl'.
+        file_params (str, optional): Path to the pickle file containing parameter data.
+                                     Defaults to 'results-fits/monkey-analysis-L0-params.pkl'.
+
+        Returns:
+        None: The function prints a formatted table with color-coded scores.
+        """
+
     with open(file_scores, 'rb') as file:
         score = pickle.load(file)
 
@@ -109,6 +186,16 @@ def plot_score_selected_models(file_scores='results-fits/monkey-analysis-L0-scor
 
 
 def compute_ANOVA(data_dict):
+    """
+        Performs a one-way ANOVA (Analysis of Variance) on a given dataset.
+
+        Parameters:
+        data_dict (dict): A dictionary where keys are group labels, and values are lists or arrays of numerical data.
+
+        Returns:
+        None: The function prints the ANOVA results, including F-value, p-value, sum of squares,
+              degrees of freedom, mean squares, and effect size.
+        """
     # Convert the dictionary to a list of arrays
     groups = list(data_dict.values())
 
@@ -211,6 +298,19 @@ def compute_average_score(filename, outlier_monkey='YOH', impacted_by_outlier=['
 
 
 def calculate_bic(y, y_pred, p):
+    """
+        Computes the Bayesian Information Criterion (BIC) for a given model.
+
+        The BIC is used to evaluate model fit while penalizing complexity.
+        A lower BIC value indicates a better balance between fit and complexity.
+
+        Parameters:
+        y (array-like): True observed values.
+        y_pred (array-like): Predicted values from the model.
+        p (int): Number of parameters in the model.
+
+        Returns:
+        float: The BIC value."""
     n = len(y)
     mse = mean_squared_error(y, y_pred)
     bic_value = n * np.log(mse) + p * np.log(n)
