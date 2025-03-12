@@ -1,8 +1,8 @@
-# Content 
+## Content 
 We developed a Python framework to study risk-taking behavior in a group of monkeys during gambling tasks. This framework enables fitting various Prospect Theory (PT) models, based on Kahneman and Tversky (1979), to a dataset of monkey behavioral responses. It allows for comparisons between observed behavior and rational decision-making models. Additionally, we analyze the social hierarchy—determined by each monkey’s Elo score—to explore potential correlations and interactions between decision-making behavior and social ranking.
 
 
-# Dependencies
+## Dependencies
 
 - numpy
 - matplotlib
@@ -13,6 +13,21 @@ We developed a Python framework to study risk-taking behavior in a group of monk
 - pickle
 - itertools
 - collections
+
+
+## Steps to run the analysis
+
+
+- Define Time Periods for Each Monkey: Use the function .. to create distinct time periods per monkey, ensuring that each period contains at least 1,500 trials.
+
+- Run `built_table_dynamic_per_period()` in `hierarchy_vs_PT.py`: this function will:\
+1)  Retrieve different Elo-rating periods and the processed dataset containing all monkey experiments.
+2) Fit the dataset for each period across different Prospect Theory players.
+3) Generate a comprehensive table where each row corresponds to a monkey, a specific period, and the fitted parameters per player.
+
+- Verify Prospect Theory Predictions: Use the generated table to evaluate whether the monkeys' behavior aligns with Prospect Theory.
+
+- Analyze Social Hierarchy & Prospect Theory Parameters in R: Investigate potential relationships between social hierarchy and Prospect Theory parameters using R for statistical analysis.
 
 
 ## Jupyter notebooks
@@ -26,10 +41,9 @@ The notebooks primarily focus on cleaning and analyzing the dataset that compile
 - `04-decision-fit`: fit subjects response to measure their willingness to choose one option over the other (sigmoid fit).
 - `05-bias-analysis`: plot figures related to the bias analysis. 
 - `06-prospect-fit`: fit the models and save in json files. 
-- `07-prospect-fit`: plot the evolution of the elo-score per monkey over time.
 
 
-# Python files 
+## Python files 
 
 The python files are used to proceed to the different fits of the monkey data on the different decision-making model under uncertainty (Prospect Theory, or rational sigmoid models). 
 
@@ -47,14 +61,10 @@ L0 represents the complete set of all lotteries. The script also provides a func
 
 `fit-precision.py`: This script contain function for creating figures related to the fit-precision (explanation of the need of 1500 trials minimum per fit).
 
-`final_result_analysis.py`: This script is designed for statistical analysis in experimental settings where the different 
-models are compared using hypothesis testing and performance metrics.
-
-
-`plot_PT_functions`: This script allows to plot and visualize various decision-making (PT and rational) models based on subjective utility and probability weighting functions.  
 
 `hierarchy_vs_PT.py`: This script processes and analyzes Elo scores and reaction times (RT) for monkeys in different experimental settings. It includes functions to compute and visualize the relationship between Elo scores and RTs across various periods
 (static, dynamic, and best trials).
+
 
 
 

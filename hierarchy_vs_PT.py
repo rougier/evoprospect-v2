@@ -627,15 +627,15 @@ def plot_elo_periods(monkey):
 
 
 if __name__ == "__main__":
-    ##### 1) Plot elo-score evolution of each monkey over time
+    ## 1) Plot elo-score evolution of each monkey over time
 
-    plot_all_elo_rates(smoothed=True)
+    #plot_all_elo_rates(smoothed=True)
 
     ##### 2) Build tables allowing to store PT parameters with the corresponding elo-score
     #built_table_static_1500_best()
     #build_table_static_all_dataset(lottery=0)
     #build_table_static_all_dataset(lottery=67)
-    #built_table_dynamic_per_period()
+    built_table_dynamic_per_period()
     #plot_elo_periods(monkey='ala')
 
     #3) RT analysis
