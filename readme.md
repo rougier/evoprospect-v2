@@ -18,9 +18,9 @@ We developed a Python framework to study risk-taking behavior in a group of monk
 ## Steps to run the analysis
 
 
-- Define Time Periods for Each Monkey: Use the function .. to create distinct time periods per monkey, ensuring that each period contains at least 1,500 trials.
+- Define time periods for each monkey: Use the function .. to create distinct time periods per monkey, ensuring that each period contains at least 1,500 trials and compute their associated mean elo-score (scoial hierachy ranking) per period.
 
-- Run `built_table_dynamic_per_period()` in `hierarchy_vs_PT.py`: this function will:\
+- Run `built_table_dynamic_per_period()` in `hierarchy_vs_PT.py`. This function will:
 1)  Retrieve different Elo-rating periods and the processed dataset containing all monkey experiments.
 2) Fit the dataset for each period across different Prospect Theory players.
 3) Generate a comprehensive table where each row corresponds to a monkey, a specific period, and the fitted parameters per player.
