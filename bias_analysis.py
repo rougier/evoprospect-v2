@@ -249,8 +249,12 @@ def plot_score_difference(controle_fit_file = 'results-fits/monkey-analysis-L0tr
 
 
 if __name__ == "__main__":
-    plot_bias_analysis(result_file='results-fits/monkey-analysis-L0train-L67test-score.pkl', biases_file='./data/monkey_biases.json', model='TK')
-    pass
+    #plot_bias_analysis(result_file='results-fits/monkey-analysis-L0train-L67test-score.pkl', biases_file='./data/monkey_biases.json', model='TK')
+    #pass
+    controle_fit_file = 'results-fits/monkey-analysis-L0train-L67test-score.pkl'
+    risky_fit_file = 'results-fits/monkey-analysis-L0train-L12345test-score.pkl'
+
+    plot_score_difference(controle_fit_file, risky_fit_file)
 
 
 
