@@ -1,0 +1,326 @@
+---
+title: "Fig2"
+output: html_document
+date: "2025-03-13"
+---
+
+# FIGURE 2 : PT PARAMETERS BOXPLOTS
+# Displays the violin plots of PT parameters fal all individuals
+
+
+```{r}
+# RHO GAINS BOXPLOT
+
+# Calculating mean of all means of rho parameter in gains
+mean_of_meansrhog <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_rho_g = mean(rho_g, na.rm = TRUE)) %>%
+  summarise(global_meanrhog = mean(mean_rho_g, na.rm = TRUE)) %>%
+  pull(global_meanrhog)
+
+# Violin plot rho in gains
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = rho_g)) +  
+  geom_hline(yintercept = mean_of_meansrhog, linetype = "dashed", color = "black", linewidth = 1) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
+  geom_violin(size = 0.5, bw = 0.1, fill = "skyblue", alpha = 0.5) + 
+  geom_point(
+    position = position_jitter(width = 0.1, seed = 123), 
+    size = 1, alpha = 0.7, color = "gray46", shape = 16
+  ) +
+  stat_summary(
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 2, fill = "black", color = "black", stroke = 1
+  ) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = expression(rho["+"] ~ "(risk attitude in gains)")
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 22),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +  
+  scale_color_manual(values = palette) +
+  scale_fill_manual(values = palette) +
+  guides(fill = "none", color = "none") +
+  annotate("point", x = 1, y = 1.3, shape = NA) +
+  annotate("text", x = 18, y = 1, label = expression(italic("risk aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 18, y = -1, label = expression(italic("risk seeking")), color = "black", hjust = 1, size = 8) +
+  scale_y_continuous(
+    breaks = c(-1, -0.5, 0, 0.5, 1),
+    limits = c(-1, 1))
+
+
+# RHO LOSSES BOXPLOT
+
+
+# Calculating mean of all means of rho parameter in losses
+mean_of_meansrhol <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_rho_l = mean(rho_l, na.rm = TRUE)) %>%
+  summarise(global_meanrhol = mean(mean_rho_l, na.rm = TRUE)) %>%
+  pull(global_meanrhol)
+
+
+# Violin plot rho in losses
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = rho_l)) +  
+  geom_hline(yintercept = mean_of_meansrhol, linetype = "dashed", color = "black", linewidth = 1) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
+  geom_violin(size = 0.5, bw = 0.1, fill = "orange", alpha = 0.5) + 
+   geom_point(
+    position = position_jitter(width = 0.1, seed = 123), 
+    size = 1, alpha = 0.7, color = "gray46", shape = 16
+  ) +
+  stat_summary(
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 2, fill = "black", color = "black", stroke = 1
+  ) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = expression(rho["-"] ~ "(risk attitude in losses)")
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 22),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +  
+  scale_color_manual(values = palette) +
+  scale_fill_manual(values = palette) + 
+  guides(fill = "none", color = "none") +
+  annotate("point", x = 1, y = 1.3, shape = NA) +
+  annotate("text", x = 18, y = 1, label = expression(italic("risk aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 18, y = -1, label = expression(italic("risk seeking")), color = "black", hjust = 1, size = 8) +
+  scale_y_continuous(
+    breaks = c(-1, -0.5, 0, 0.5, 1),
+    limits = c(-1, 1)
+  )
+
+
+
+
+# ALPHA GAINS BOXPLOT
+
+
+# Calculating mean of all means of alpha parameter in gains
+mean_of_meansalphag <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_alpha_g = mean(alpha_graw, na.rm = TRUE)) %>%
+  summarise(global_meanalpha_g = mean(mean_alpha_g, na.rm = TRUE)) %>%
+  pull(global_meanalpha_g)
+
+
+# Violin plot alpha in gains
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = alpha_graw)) +  
+  geom_hline(yintercept = mean_of_meansalphag, linetype = "dashed", color = "black", linewidth = 1) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.5) +
+  geom_violin(size = 0.5, bw = 0.1, fill = "skyblue", alpha = 0.5) + 
+   geom_point(
+    position = position_jitter(width = 0.1, seed = 123), 
+    size = 1, alpha = 0.7, color = "gray46", shape = 16
+  ) +
+  stat_summary(
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 2, fill = "black", color = "black", stroke = 1
+  ) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = expression(alpha["+"] ~ "(probability disortion in gains)")
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 22),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +  
+  scale_color_manual(values = palette) +
+  scale_fill_manual(values = palette) +
+  guides(fill = "none", color = "none") +
+  annotate("text", x = 17, y = 10, label = expression(italic("S shape")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 17, y = 0.1, label = expression(italic("inverted S shape")), color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+
+# ALPHA LOSSES BOXPLOT
+
+# Calculating mean of all means of alpha parameter in losses
+mean_of_meansalphal <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_alpha_l = mean(alpha_lraw, na.rm = TRUE)) %>%
+  summarise(global_meanalpha_l = mean(mean_alpha_l, na.rm = TRUE)) %>%
+  pull(global_meanalpha_l)
+
+
+# Violin plot alpha in losses
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = alpha_lraw)) +  
+  geom_hline(yintercept = mean_of_meansalphal, linetype = "dashed", color = "black", linewidth = 1) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.5) +
+  geom_violin(size = 0.5, bw = 0.1, fill = "orange", alpha = 0.5) + 
+   geom_point(
+    position = position_jitter(width = 0.1, seed = 123), 
+    size = 1, alpha = 0.7, color = "grey46", shape = 16
+  ) +
+  stat_summary(
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 2, fill = "black", color = "black", stroke = 1
+  ) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = expression(alpha["-"] ~ "(probability disortion in losses)")
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 22),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +  
+  scale_color_manual(values = palette) +
+  scale_fill_manual(values = palette) +
+  guides(fill = "none", color = "none") +
+  annotate("text", x = 17, y = 10, label = expression(italic("S shape")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 17, y = 0.1, label = expression(italic("inverted S shape")), color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+
+
+# LAMBDA BOXPLOT
+
+# Calculating mean of all means of lambda parameter
+mean_of_meanslambda <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_lambda = mean(lambdaraw, na.rm = TRUE)) %>%
+  summarise(global_meanlambda = mean(mean_lambda, na.rm = TRUE)) %>%
+  pull(global_meanlambda)
+
+
+# Violin plot lambda
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = lambdaraw)) +  
+  geom_hline(yintercept = mean_of_meanslambda, linetype = "dashed", color = "black", linewidth = 1) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.5) +
+  geom_violin(size = 0.5, bw = 0.1, fill = "#D62728", alpha = 0.5) + 
+   geom_point(
+    position = position_jitter(width = 0.1, seed = 123), 
+    size = 1, alpha = 0.7, color = "grey46", shape = 16
+  ) +
+  stat_summary(
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 1.5, fill = "black", color = "black", stroke = 1
+  ) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = expression(lambda ~ "(loss aversion)")
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 22),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +  
+  scale_color_manual(values = palette) +
+  scale_fill_manual(values = palette) +
+  guides(fill = "none", color = "none") +
+  annotate("text", x = 17, y = 10, label = expression(italic("loss aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 17, y = 0.1, label = expression(italic("loss seeking")), color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+
+# ELO SCORE BOXPLOT
+
+mean_of_meanselo <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(mean_elo = mean(elo, na.rm = TRUE)) %>%
+  summarise(global_meanelo = mean(mean_elo, na.rm = TRUE)) %>%
+  pull(global_meanelo)
+
+
+ggplot(filtered_data, aes(x = reorder(as.factor(monkey), elo, FUN = mean), y = elo)) +
+  geom_violin(size = 0.5, bw = 25, alpha = 0.5, 
+              position = position_dodge(width = 0.8), fill = "#2CA02C") +
+  geom_point(
+    position = position_jitter(width = 0.1, seed = 0), 
+    size = 1, alpha = 0.5, color = "grey46"
+  ) +
+  stat_summary( 
+    geom = "point", 
+    fun = median,
+    shape = 16, size = 1.5, fill = "black", color = "black", stroke = 1,
+    position = position_dodge(width = 0)) +
+  labs(
+    title = "",
+    x = "Monkeys",
+    y = "Elo score"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36), 
+    axis.title.y = element_text(size = 36),
+    axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 30),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 30),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",  
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.05, 0.1))) +
+  guides(fill = "none", color = "none")
+```
+

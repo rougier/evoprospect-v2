@@ -1,0 +1,39 @@
+---
+title: "Fig4"
+output: html_document
+date: "2025-03-13"
+---
+
+#Table 1 : LMM RESULTS
+# Display LMM results for PT parameters in function of age, sex, Elo score and the number trial performed.
+
+```{r}
+
+# Scaling to have appropriate estimates for the different factors
+data_norm <- filtered_data %>%
+  mutate(
+    elo = scale(elo),
+    mean_trial_number = scale(log(mean_trial_number)),
+    COP = scale(COP),
+  )
+
+# Initiate models for PT parameters
+h1 <- lmer(rho_g ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
+h2 <- lmer(rho_l ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
+h3 <- lmer(alpha_g ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
+h4 <- lmer(alpha_l ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
+h5 <- lmer(lambda_ ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
+
+# Display model results
+tab_model(h1, h2, h3, h4, h5)
+
+
+h6 <- lmer(rho_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h7 <- lmer(rho_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h8 <- lmer(alpha_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h9 <- lmer(alpha_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h10 <- lmer(lambda_ ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+
+tab_model(h6, h7, h8, h9, h10)
+```
+
