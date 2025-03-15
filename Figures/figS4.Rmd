@@ -1,0 +1,158 @@
+---
+title: "FigS4"
+output: html_document
+date: "2025-03-13"
+---
+
+# Fig S4 : Probability Distortion Function in Gains
+# Display the probability distortion function mean for each individual and the mean of all individual means in gains and losses
+
+```{r}
+
+
+prelec_function <- function(P, alpha) {
+  exp(-(-log(P))^alpha)
+}
+
+
+P_values <- seq(0.001, 1, length.out = 1000)
+
+
+individual_params <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(
+    mean_alpha = mean(alpha_graw, na.rm = TRUE)
+  )
+
+
+global_mean_alpha <- mean(individual_params$mean_alpha, na.rm = TRUE)
+
+
+global_mean_distortion <- sapply(P_values, prelec_function, 
+                                 alpha = global_mean_alpha)
+
+global_mean_df <- data.frame(
+  P_value = P_values,
+  distortion = global_mean_distortion,
+  color = "blue")
+
+
+
+individual_means_df <- individual_params %>%
+  rowwise() %>%
+  mutate(distortion_values = list(sapply(P_values, prelec_function, 
+                                         alpha = mean_alpha))) %>%
+  unnest(cols = c(distortion_values)) %>%
+  mutate(P_value = rep(P_values, nrow(individual_params)))
+
+
+global_alpha_text <- data.frame(
+  label = paste("α+ = ", round(global_mean_alpha, 2))
+)
+
+
+ggplot() +
+  geom_line(data = individual_means_df, 
+            aes(x = P_value, y = distortion_values, group = monkey), 
+            color = "gray", alpha = 0.4, size = 0.7) +
+  geom_line(data = global_mean_df, 
+            aes(x = P_value, y = distortion, color = color), 
+            size = 1.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black", size = 0.5) +
+  scale_color_identity() +
+  labs(
+    title = "",
+    x = "p",
+    y = "w(p)"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 0, hjust = 1, size = 22),
+    axis.text.y = element_text(size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    legend.position = "top",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  geom_text(data = global_alpha_text, 
+            aes(x = 0.75, y = 0.05, label = label), 
+            size = 8, color = "black", hjust = 0)
+```
+
+
+# Fig S4 : Probability Distortion Function in Losses
+
+```{r}
+prelec_function <- function(P, alpha) {
+  exp(-(-log(P))^alpha)
+}
+
+
+P_values <- seq(0.001, 1, length.out = 1000)
+
+
+individual_params <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(
+    mean_alpha = mean(alpha_lraw, na.rm = TRUE)
+  )
+
+
+global_mean_alpha <- mean(individual_params$mean_alpha, na.rm = TRUE)
+
+
+global_mean_distortion <- sapply(P_values, prelec_function, 
+                                 alpha = global_mean_alpha)
+
+global_mean_df <- data.frame(
+  P_value = P_values,
+  distortion = global_mean_distortion,
+  color = "orange") 
+
+
+
+individual_means_df <- individual_params %>%
+  rowwise() %>%
+  mutate(distortion_values = list(sapply(P_values, prelec_function, 
+                                         alpha = mean_alpha))) %>%
+  unnest(cols = c(distortion_values)) %>%
+  mutate(P_value = rep(P_values, nrow(individual_params)))
+
+
+global_alpha_text <- data.frame(
+  label = paste("α- = ", round(global_mean_alpha, 2))
+)
+
+
+ggplot() +
+  geom_line(data = individual_means_df, 
+            aes(x = P_value, y = distortion_values, group = monkey), 
+            color = "gray", alpha = 0.4, size = 0.7) +
+  geom_line(data = global_mean_df, 
+            aes(x = P_value, y = distortion, color = color), 
+            size = 1.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black", size = 0.5) +
+  scale_color_identity() +
+  labs(
+    title = "",
+    x = "p",
+    y = "w(p)"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 0, hjust = 1, size = 22),
+    axis.text.y = element_text(size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    legend.position = "top",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  geom_text(data = global_alpha_text, 
+            aes(x = 0.70, y = 0.05, label = label), 
+            size = 8, color = "black", hjust = 0)
+```
+
