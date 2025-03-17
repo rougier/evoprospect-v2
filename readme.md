@@ -50,7 +50,8 @@ The notebooks primarily focus on cleaning and analyzing the dataset that compile
 - `03-task-analysis`:  allows to have a first overview of the cleaned datset
 - `04-decision-fit`: fit subjects response to measure their willingness to choose one option over the other (sigmoid fit).
 - `05-bias-analysis`: plot figures related to the bias analysis. 
-- `06-prospect-fit`: fit the models and save in json files. 
+- `06-prospect-fit`: fit the models and save in json files.
+- `07-1500_trials_periods` : This script create the dataset with start and end dates for each consecutive 1500 trials with mean Elo score for each individual.
 
 
 ## Python files 
@@ -71,11 +72,8 @@ L0 represents the complete set of all lotteries. The script also provides a func
 
 `fit-precision.py`: This script contain function for creating figures related to the fit-precision (explanation of the need of 1500 trials minimum per fit).
 
-
 `hierarchy_vs_PT.py`: This script processes and analyzes Elo scores and reaction times (RT) for monkeys in different experimental settings. It includes functions to compute and visualize the relationship between Elo scores and RTs across various periods
 (static, dynamic, and best trials).
-
-`1500_trials_periods` : This script create the dataset with start and end dates for each consecutive 1500 trials with mean Elo score for each individual.
 
 `figS1.ipynb` : This script contain generates all Elo score evolution in time for each individual in the analyse.
 
