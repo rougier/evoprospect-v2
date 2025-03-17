@@ -1,0 +1,28 @@
+---
+title: "tabS1"
+output: html_document
+date: "2025-03-15"
+---
+
+#Table S1 : LMM RESULTS WITH COP
+# Display LMM results for PT parameters in function of age, sex, Elo score, COP and the number trial performed.
+
+```{r}
+
+# Scaling to have appropriate estimates for the different factors
+data_norm <- filtered_data %>%
+  mutate(
+    elo = scale(elo),
+    mean_trial_number = scale(log(mean_trial_number)),
+    COP = scale(COP)
+  )
+
+h6 <- lmer(rho_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h7 <- lmer(rho_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h8 <- lmer(alpha_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h9 <- lmer(alpha_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h10 <- lmer(lambda_ ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+
+tab_model(h6, h7, h8, h9, h10)
+```
+

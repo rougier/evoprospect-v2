@@ -1,0 +1,101 @@
+---
+title: "FigS3"
+output: html_document
+date: "2025-03-13"
+---
+
+# Figure S3 : Utilitity Function
+# Display the utility function mean for each individual and the mean of all individual means in gains and losses
+
+```{r}
+
+u <- function(x, rho_g, rho_l, lambdaraw) {
+  ifelse(x > 0, x^(1 - rho_g), -lambdaraw * (-x)^(1 + rho_l))
+}
+
+
+x_values <- seq(-1, 1, length.out = 1000)
+
+
+individual_params <- filtered_data %>%
+  group_by(monkey) %>%
+  summarise(
+    mean_rho_g = mean(rho_g, na.rm = TRUE),
+    mean_rho_l = mean(rho_l, na.rm = TRUE),
+    mean_lambda = mean(lambdaraw, na.rm = TRUE)
+  )
+
+
+global_mean_rho_g <- mean(individual_params$mean_rho_g, na.rm = TRUE)
+global_mean_rho_l <- mean(individual_params$mean_rho_l, na.rm = TRUE)
+global_mean_lambda <- mean(individual_params$mean_lambda, na.rm = TRUE)
+
+
+global_mean_util_values <- sapply(x_values, u, 
+                                  rho_g = global_mean_rho_g, 
+                                  rho_l = global_mean_rho_l, 
+                                  lambdaraw = global_mean_lambda)
+
+global_mean_df <- data.frame(
+  x_value = x_values,
+  util_values = global_mean_util_values,
+  color = ifelse(x_values < 0, "orange", "blue")
+)
+
+
+individual_means_df <- individual_params %>%
+  rowwise() %>%
+  mutate(util_values = list(sapply(x_values, u, 
+                                   rho_g = mean_rho_g, 
+                                   rho_l = mean_rho_l, 
+                                   lambdaraw = mean_lambda))) %>%
+  unnest(cols = c(util_values)) %>%
+  mutate(x_value = rep(x_values, nrow(individual_params)))
+
+
+global_text_df <- data.frame(
+  x = 0.1,
+  y = -3,
+  label = paste(
+    "ρ+ = ", round(global_mean_rho_g, 2), "\n",
+    "ρ- = ", round(global_mean_rho_l, 2), "\n",
+    "λ = ", round(global_mean_lambda, 2)
+  )
+)
+
+
+ggplot() +
+  geom_line(data = individual_means_df, 
+            aes(x = x_value, y = util_values, group = monkey), 
+            color = "gray", alpha = 0.4, size = 0.7) +
+  geom_line(data = global_mean_df, 
+            aes(x = x_value, y = util_values, color = color), 
+            size = 1.2) +
+  geom_vline(xintercept = 0, linetype = "solid", color = "black", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 0.5) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black", size = 0.5) +
+  scale_color_identity() +
+  labs(
+    title = "",
+    x = "x",
+    y = "u(x)"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 32),
+    axis.text.x = element_text(angle = 0, hjust = 1, size = 22),
+    axis.text.y = element_text(size = 22),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    legend.position = "top",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  geom_text(data = global_text_df, 
+            aes(x = 0.70, y = -4.5, label = label), 
+            size = 8, color = "black", hjust = 0) +
+  scale_y_continuous(
+    breaks = c(-5, -4, -3, -2, -1, 0, 1)
+  )
+```
+

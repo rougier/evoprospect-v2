@@ -4,6 +4,7 @@ We developed a Python framework to study risk-taking behavior in a group of monk
 
 ## Dependencies
 
+Python
 - numpy
 - matplotlib
 - pandas
@@ -14,6 +15,15 @@ We developed a Python framework to study risk-taking behavior in a group of monk
 - itertools
 - collections
 
+R
+- dplyr
+- stats
+- Matrix
+- rstatix
+- ggplot2
+- lme4
+- lmerTest
+- sjPlot
 
 ## Steps to run the analysis
 
@@ -65,9 +75,29 @@ L0 represents the complete set of all lotteries. The script also provides a func
 `hierarchy_vs_PT.py`: This script processes and analyzes Elo scores and reaction times (RT) for monkeys in different experimental settings. It includes functions to compute and visualize the relationship between Elo scores and RTs across various periods
 (static, dynamic, and best trials).
 
+`1500_trials_periods` : This script create the dataset with start and end dates for each consecutive 1500 trials with mean Elo score for each individual.
 
+`figS1.ipynb` : This script contain generates all Elo score evolution in time for each individual in the analyse.
 
+## R files
 
+R files in Figures file are used to transform dataset and plot differents figures .
 
+`Data_preprocessing.Rmd`: This script contain processes to transform the dataset and add different variables of interest as age, sex, trial number or COP.
 
+`fig2.Rmd` : This script display violin plot of PT parameters and Elo score in function of individuals.
+
+`fig3.Rmd` : This script display the plot for PT parameters and COP in function of Elo score.
+
+`tab1.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, Elo score and trial number.
+
+`figS3.Rmd` : This script contain the function to compute the mean utility function of all individual and global one.
+
+`figS4.Rmd` : This script contain the function to compute the mean distortion probability function of all individual and global one in gains and losses.
+
+`figS5.Rmd` : This script display individual plot and individual linear regression for PT parameters in function of Elo score.
+
+`figS6.Rmd` : This script display predictive values and intervale confidence of Pt parameters function of Elo score, trial number and COP from LMM models.
+
+`tabS1.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, COP and trial number.
 

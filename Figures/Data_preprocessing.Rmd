@@ -1,0 +1,262 @@
+---
+title: "Data pre-preocessing"
+output: html_document
+date: "2025-03-13"
+---
+
+```{r}
+library(tidyverse)
+library(ISLR)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(grid)
+library(reshape2)
+library(car)
+library(emmeans)
+library(svglite)
+library(rsvg)
+library(rstatix)
+library(MASS)
+library(performance)
+library(rstanarm)
+library(lme4)
+library(lmerTest)
+library(Matrix)
+library(glmmTMB)
+library(minque)
+library(glmulti)
+library(sjPlot)
+library(ggpattern)
+library(colorspace)
+library(DHARMa)
+library(MuMIn)
+library(gridExtra)
+library(webshot2)
+library(glue)
+library(gtsummary)
+library(flextable)
+```
+
+
+# DATA & DEMOGRAPHIC INFORMATIONS IMPORTATION
+
+```{r}
+
+# Importation of data with PT parameters
+datad <- read.csv("elo_dynamic_L0_P1+.csv", sep = ",")
+
+# Importation of data with demographic informations
+info <- read.csv("infos.csv", sep = ";")
+
+# Combine dataframes
+datad_final <- datad %>%
+  left_join(dplyr::select(info, monkey, birthdate, sex), by = "monkey")
+
+# Date convertion
+datad_final <- datad_final %>%
+  mutate(
+    birthdate = dmy(birthdate),  
+    date_start = ymd_hms(date_start),
+    date_end = ymd_hms(date_end)
+  )
+
+# Age in year
+datad_final <- datad_final %>%
+  mutate(
+    age_start = as.numeric(difftime(date_start, birthdate, units = "days")) / 365.25,
+    age_end = as.numeric(difftime(date_end, birthdate, units = "days")) / 365.25
+  )
+# Mean age during the differnt periods
+datad_final$mean_age <- (datad_final$age_start + datad_final$age_end) /2
+
+
+# Sex into factor
+datad_final$sex <- factor(datad_final$sex, levels = c(1, 2), labels = c('male', 'female'))
+
+
+# Age categories
+datad_final$age_category <- ifelse(datad_final$mean_age < 4, "juvenile",
+                            ifelse(datad_final$sex == "male" & datad_final$mean_age < 8, "subadult",
+                            ifelse(datad_final$sex == "female" & datad_final$mean_age < 7, "subadult", "adult")))
+
+```
+
+
+# Add mean trial number
+
+```{r}
+# Importation of data with all trials
+alldata <- read.csv("data-processed.csv", sep = ",")
+# Date convertion
+alldata <- alldata %>%
+  mutate(datetime = as.POSIXct(paste(date, heure_debut), format = "%Y-%m-%d %H:%M:%S"))
+
+
+# Calculate the mean number of trials performed during the different periods
+datad_final$trial_number <- NA
+datad_final$last_trial_number <- NA
+
+
+for (i in 1:nrow(datad_final)) {
+  monkey_indiv <- datad_final$monkey[i]
+  date_start_indiv <- datad_final$date_start[i]
+  date_end_indiv <- datad_final$date_end[i]
+  
+  trials_for_monkey <- alldata %>%
+    filter(subject_id == monkey_indiv, 
+           datetime >= date_start_indiv, 
+           datetime <= date_end_indiv)
+  
+
+  if (nrow(trials_for_monkey) > 0) {
+    first_trial <- trials_for_monkey[1, ]
+    last_trial <- trials_for_monkey[nrow(trials_for_monkey), ]
+
+    
+    datad_final$trial_number[i] <- first_trial$trial_number
+    datad_final$last_trial_number[i] <- last_trial$trial_number
+    datad_final$last_work_day[i] <- last_trial$work_day
+  } else {
+    datad_final$trial_number[i] <- NA
+    datad_final$last_trial_number[i] <- NA
+  }
+}
+
+
+# Mean trial number
+datad_final$mean_trial_number <- (datad_final$trial_number + datad_final$last_trial_number) /2
+
+```
+
+
+#Filtrage data interquartile
+
+```{r}
+
+# Filtering with the 1.5 interquartile range method
+
+print(nrow(datad_final))
+
+datad_final2 <- datad_final
+
+datad_final2$alpha_graw <- datad_final2$alpha_g
+datad_final2$alpha_lraw <- datad_final2$alpha_l
+datad_final2$lambdaraw <- datad_final2$lambda_
+
+# Distribution transformation
+datad_final2$alpha_g <- log(datad_final2$alpha_g)
+datad_final2$alpha_l <- log(datad_final2$alpha_l)
+datad_final2$lambda_ <- log(datad_final2$lambda_)
+
+
+variables_iqr <- c("alpha_g", "alpha_l", "lambda_", "rho_g", "rho_l")
+
+
+data_filtered2 <- datad_final2
+
+# Interquartile outlier detection
+for (var in variables_iqr) {
+  Q1 <- quantile(data_filtered2[[var]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(data_filtered2[[var]], 0.75, na.rm = TRUE)
+  
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  print(var)
+  print(lower_bound)
+  print(upper_bound)
+  
+  data_filtered2[[paste("outlier", var, sep = "_")]] <- 
+    !(data_filtered2[[var]] >= lower_bound & data_filtered2[[var]] <= upper_bound)
+}
+
+outlier_columns <- grep("^outlier_", names(data_filtered2), value = TRUE)
+filtered_data2 <- data_filtered2[!rowSums(data_filtered2[outlier_columns]) > 0, ]
+
+
+
+filtered_data2 <- filtered_data2[filtered_data2$rho_g >-1 & filtered_data2$rho_g < 1,]
+
+filtered_data2 <- filtered_data2[filtered_data2$rho_l >-1 & filtered_data2$rho_l <1,]
+
+
+
+# Exclusion if less than 10 trials left
+filtered_data3 <- filtered_data2 %>%
+  group_by(monkey) %>%
+  filter(n() >= 10) %>%
+  ungroup()
+
+
+filtered_data <- filtered_data3
+
+```
+
+
+# Win ratio & COP
+
+```{r}
+# Importation of dataset with dyade conflict
+conf <- read.table("eloconf_modules.txt", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+conf$datetime <- as.POSIXct(paste(conf$Date, conf$time), format = "%Y-%m-%d %H:%M:%S")
+
+
+# Calculation of win ratio and COP during the differnt periods
+
+calculate_ratios <- function(filtered_data, conf) {
+  
+  filtered_data <- filtered_data %>%
+    mutate(win_ratio = NA, lose_ratio = NA, abs_diff_ratio = NA)
+  
+  for (i in 1:nrow(filtered_data)) {
+    period_start <- filtered_data$date_start[i]
+    period_end <- filtered_data$date_end[i]
+    individual <- filtered_data$monkey[i]
+
+    conflicts_in_period <- conf %>%
+      filter(datetime >= period_start & datetime <= period_end &
+             (winner == individual | loser == individual))
+    
+    dyads <- conflicts_in_period %>%
+      mutate(pair = ifelse(winner < loser, paste(winner, loser, sep = "-"), paste(loser, winner, sep = "-"))) %>%
+      distinct(pair, winner, loser)
+    
+    dyad_ratios <- data.frame()
+    
+    for (j in 1:nrow(dyads)) {
+      other <- ifelse(dyads$winner[j] == individual, dyads$loser[j], dyads$winner[j])
+      
+      win_count <- sum(conflicts_in_period$winner == individual & conflicts_in_period$loser == other)
+      lose_count <- sum(conflicts_in_period$loser == individual & conflicts_in_period$winner == other)
+      total_conflicts <- win_count + lose_count
+      
+
+      if (total_conflicts > 0) {
+        win_ratio <- win_count / total_conflicts
+        lose_ratio <- lose_count / total_conflicts
+        abs_diff_ratio <- abs(win_count - lose_count) / total_conflicts
+        dyad_ratios <- rbind(dyad_ratios, data.frame(win_ratio, lose_ratio, abs_diff_ratio))
+      }
+    }
+    
+
+    if (nrow(dyad_ratios) > 0) {
+      filtered_data$win_ratio[i] <- mean(dyad_ratios$win_ratio, na.rm = TRUE)
+      filtered_data$lose_ratio[i] <- mean(dyad_ratios$lose_ratio, na.rm = TRUE)
+      filtered_data$abs_diff_ratio[i] <- mean(dyad_ratios$abs_diff_ratio, na.rm = TRUE)
+    }
+  }
+  
+  return(filtered_data)
+}
+
+
+filtered_data <- calculate_ratios(filtered_data, conf)
+
+
+filtered_data$COP <- abs(filtered_data$win_ratio - 0.5) * 2
+
+```
