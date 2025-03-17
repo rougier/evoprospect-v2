@@ -97,5 +97,7 @@ R files in Figures file are used to transform dataset and plot differents figure
 
 `figS5.Rmd` : This script display individual plot and individual linear regression for PT parameters in function of Elo score.
 
+`figS6.Rmd` : This script display predictive values and intervale confidence of Pt parameters function of Elo score, trial number and COP from LMM models.
+
 `tabS1.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, COP and trial number.
 
