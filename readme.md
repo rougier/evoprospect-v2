@@ -50,8 +50,7 @@ The notebooks primarily focus on cleaning and analyzing the dataset that compile
 - `03-task-analysis`:  allows to have a first overview of the cleaned datset
 - `04-decision-fit`: fit subjects response to measure their willingness to choose one option over the other (sigmoid fit).
 - `05-bias-analysis`: plot figures related to the bias analysis. 
-- `06-prospect-fit`: fit the models and save in json files.
-- `07-1500_trials_periods` : This script create the dataset with start and end dates for each consecutive 1500 trials with mean Elo score for each individual.
+- `06-1500_trials_periods` : This script create the dataset with start and end dates for each consecutive 1500 trials with mean Elo score for each individual.
 
 
 ## Python files 
