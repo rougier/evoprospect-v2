@@ -83,7 +83,7 @@ L0 represents the complete set of all lotteries. The script also provides a func
 
 R files in Figures file are used to transform dataset and plot differents figures .
 
-`Data_preprocessing.Rmd`: This script contains processes to transform the dataset and add different variables of interest as age, sex, trial number or COP.
+`Data_preprocessing.Rmd`: This script contain processes to transform the dataset and add different variables of interest as age, sex, trial number or COP.
 
 `fig2.Rmd` : This script display violin plot of PT parameters and Elo score in function of individuals.
 
