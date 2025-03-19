@@ -589,7 +589,7 @@ rho_l_preds <- apply(combinations_rhol, 1, function(x) {
 })
 
 
-df_rhol <- data.frame(COP = rep(ratio_mean_seq, length(rhol_int) * length(rhol_coeff)),
+df_rhol <- data.frame(COP = rep(COP_seq, length(rhol_int) * length(rhol_coeff)),
                       rho_l_pred = unlist(rho_l_preds),
                       rhol_int = rep(combinations_rhol$rhol_int, each = length(COP_seq)),
                       rhol_coeff = rep(combinations_rhol$rhol_coeff, each = length(COP_seq)))
