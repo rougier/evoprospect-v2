@@ -14,14 +14,15 @@ data_norm <- filtered_data %>%
   mutate(
     elo = scale(elo),
     mean_trial_number = scale(log(mean_trial_number)),
-    COP = scale(COP)
+    COP = scale(COP),
+    certainty = scale(certainty)
   )
 
-h6 <- lmer(rho_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
-h7 <- lmer(rho_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
-h8 <- lmer(alpha_g ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
-h9 <- lmer(alpha_l ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
-h10 <- lmer(lambda_ ~ age_category + sex + elo + COP + mean_trial_number + (1|monkey), data = data_norm)
+h6 <- lmer(rho_g ~ age_category + sex + certainty + COP + mean_trial_number + (1|monkey), data = data_norm)
+h7 <- lmer(rho_l ~ age_category + sex + certainty + COP + mean_trial_number + (1|monkey), data = data_norm)
+h8 <- lmer(alpha_g ~ age_category + sex + certainty + COP + mean_trial_number + (1|monkey), data = data_norm)
+h9 <- lmer(alpha_l ~ age_category + sex + certainty + COP + mean_trial_number + (1|monkey), data = data_norm)
+h10 <- lmer(lambda_ ~ age_category + sex + certainty + COP + mean_trial_number + (1|monkey), data = data_norm)
 
 tab_model(h6, h7, h8, h9, h10)
 ```
