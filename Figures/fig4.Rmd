@@ -1,5 +1,5 @@
 ---
-title: "figS6"
+title: "fig4"
 output: html_document
 date: "2025-03-17"
 ---
@@ -550,8 +550,8 @@ ggplot() +
 ```{r}
 COP_seq <- seq(min(data_norm$COP, na.rm = TRUE), max(data_norm$COP, na.rm = TRUE), length.out = 100)
 
-rhog_int <- seq(from = -0.16, to = 0.19, by = 0.01)
-rhog_coeff <- seq(from = 0.02, to = 0.06, by = 0.005)
+rhog_int <- seq(from = -0.14, to = 0.20, by = 0.01)
+rhog_coeff <- seq(from = 0.02, to = 0.05, by = 0.005)
 
 rhol_int <- seq(from = -0.63, to = -0.46, by = 0.01)
 rhol_coeff <- seq(from = 0.01, to = 0.03, by = 0.005)
@@ -624,8 +624,8 @@ df_combined <- bind_rows(df_rhog_long_extreme, df_rhol_long_extreme)
 
 
 
-h4 <- lmer(rho_g ~ age_category + sex + COP + mean_trial_number + (1|monkey), data = data_norm)
-h5 <- lmer(rho_l ~ age_category + sex + COP + mean_trial_number + (1|monkey), data = data_norm)
+h4 <- lmer(rho_g ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+h5 <- lmer(rho_l ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
 
 
 coefs_g <- summary(h4)$coefficients[, "Estimate"]
@@ -679,8 +679,8 @@ ggplot() +
 ```{r}
 COP_seq <- seq(min(data_norm$COP, na.rm = TRUE), max(data_norm$COP, na.rm = TRUE), length.out = 100)
 
-alphag_int <- seq(from = -0.27, to = 0.42, by = 0.01)
-alphag_coeff <- seq(from = -0.07, to = -0.02, by = 0.005)
+alphag_int <- seq(from = -0.28, to = 0.39, by = 0.01)
+alphag_coeff <- seq(from = -0.07, to = -0.01, by = 0.005)
 
 alphal_int <- seq(from = -0.77, to = -0.34, by = 0.01)
 alphal_coeff <- seq(from = -0.02, to = 0.03, by = 0.005)
@@ -750,8 +750,8 @@ df_combined <- bind_rows(df_alphag_long_extreme, df_alphal_long_extreme)
 
 
 
-h4 <- lmer(alpha_g ~ age_category + sex + COP + mean_trial_number + (1|monkey), data = data_norm)
-h5 <- lmer(alpha_l ~ age_category + sex + COP + mean_trial_number + (1|monkey), data = data_norm)
+h4 <- lmer(alpha_g ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+h5 <- lmer(alpha_l ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
 
 coefs_g <- summary(h4)$coefficients[, "Estimate"]
 
@@ -779,9 +779,263 @@ ggplot() +
   geom_line(data = df_modeles, aes(x = COP, y = alpha_l_pred, linetype = "alpha_l"), color = "orange", size = 1.2) +  
   geom_hline(yintercept = 0, size = 0.7) +
   scale_fill_manual(values = c("Alpha_g" = "skyblue", "Alpha_l" = "orange")) +
-  scale_linetype_manual(values = c("alpha_g" = "dashed", "alpha_l" = "dashed")) +
+  scale_linetype_manual(values = c("alpha_g" = "solid", "alpha_l" = "dashed")) +
   labs(title = "",
        x = "Normalized value for COP",
+       y = expression(alpha ~ " predicted value")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text.x = element_text(size = 30),
+    axis.text.y = element_text(size = 30),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) + 
+  ylim(-1, 1)
+
+```
+
+
+# Rho ~ Certainty
+```{r}
+certainty_seq <- seq(min(data_norm$certainty, na.rm = TRUE), max(data_norm$certainty, na.rm = TRUE), length.out = 100)
+
+rhog_int <- seq(from = -0.14, to = 0.20, by = 0.01)
+rhog_coeff <- seq(from = 0, to = 0.04, by = 0.005)
+
+rhol_int <- seq(from = -0.63, to = -0.46, by = 0.01)
+rhol_coeff <- seq(from = -0.01, to = 0.01, by = 0.005)
+
+
+combinations_rhog <- expand.grid(rhog_int = rhog_int, rhog_coeff = rhog_coeff)
+
+
+rho_g_preds <- apply(combinations_rhog, 1, function(x) {
+  rho_int <- x[1]
+  coeff <- x[2]
+  rho_int + coeff * certainty_seq
+})
+
+
+df_rhog <- data.frame(certainty = rep(certainty_seq, length(rhog_int) * length(rhog_coeff)),
+                      rho_g_pred = unlist(rho_g_preds),
+                      rhog_int = rep(combinations_rhog$rhog_int, each = length(certainty_seq)),
+                      rhog_coeff = rep(combinations_rhog$rhog_coeff, each = length(certainty_seq)))
+
+df_rhog_long <- df_rhog %>%
+  pivot_longer(cols = starts_with("rho_g_pred"), 
+               names_to = "step", 
+               values_to = "value")
+
+
+
+combinations_rhol <- expand.grid(rhol_int = rhol_int, rhol_coeff = rhol_coeff)
+
+
+rho_l_preds <- apply(combinations_rhol, 1, function(x) {
+  rho_int <- x[1]
+  coeff <- x[2]
+  rho_int + coeff * certainty_seq
+})
+
+
+df_rhol <- data.frame(certainty = rep(certainty_seq, length(rhol_int) * length(rhol_coeff)),
+                      rho_l_pred = unlist(rho_l_preds),
+                      rhol_int = rep(combinations_rhol$rhol_int, each = length(certainty_seq)),
+                      rhol_coeff = rep(combinations_rhol$rhol_coeff, each = length(certainty_seq)))
+
+df_rhol_long <- df_rhol %>%
+  pivot_longer(cols = starts_with("rho_l_pred"), 
+               names_to = "step", 
+               values_to = "value")
+
+
+
+
+df_rhog_long_extreme <- df_rhog_long %>%
+  group_by(certainty) %>%
+  summarise(
+    ymin = min(value),
+    ymax = max(value)
+  ) %>%
+  mutate(group = "Rho_g")
+
+
+df_rhol_long_extreme <- df_rhol_long %>%
+  group_by(certainty) %>%
+  summarise(
+    ymin = min(value),
+    ymax = max(value)
+  ) %>%
+  mutate(group = "Rho_l")
+
+
+df_combined <- bind_rows(df_rhog_long_extreme, df_rhol_long_extreme)
+
+
+
+h4 <- lmer(rho_g ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+h5 <- lmer(rho_l ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+
+
+coefs_g <- summary(h4)$coefficients[, "Estimate"]
+
+coefs_l <- summary(h5)$coefficients[, "Estimate"]
+
+
+COP_seq <- seq(min(data_norm$certainty, na.rm = TRUE), max(data_norm$certainty, na.rm = TRUE), length.out = 100)
+
+rho_g_pred <- coefs_g["(Intercept)"] + coefs_g["certainty"] * certainty_seq
+
+rho_l_pred <- coefs_l["(Intercept)"] + coefs_l["certainty"] * certainty_seq
+
+
+
+df_modeles <- data.frame(
+  certainty = certainty_seq,
+  rho_g_pred = rho_g_pred,
+  rho_l_pred = rho_l_pred
+)
+
+
+ggplot() +
+  geom_ribbon(data = df_combined, aes(x = certainty, ymin = ymin, ymax = ymax, fill = group), alpha = 0.3) +
+  geom_line(data = df_modeles, aes(x = certainty, y = rho_g_pred, linetype = "rho_g"), color = "skyblue", size = 1.2) + 
+  geom_line(data = df_modeles, aes(x = certainty, y = rho_l_pred, linetype = "rho_l"), color = "orange", size = 1.2) +  
+  geom_hline(yintercept = 0, size = 0.7) +
+  scale_fill_manual(values = c("Rho_g" = "skyblue", "Rho_l" = "orange")) +
+  scale_linetype_manual(values = c("rho_g" = "dashed", "rho_l" = "dashed")) +
+  labs(title = "",
+       x = "Normalized value for Certainty",
+       y = expression(rho ~ " predicted value")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text.x = element_text(size = 30),
+    axis.text.y = element_text(size = 30),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    legend.title = element_blank(),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) + 
+  ylim(-1, 1)
+
+```
+
+
+# Alpha ~ Certainty
+```{r}
+certainty_seq <- seq(min(data_norm$certainty, na.rm = TRUE), max(data_norm$certainty, na.rm = TRUE), length.out = 100)
+
+alphag_int <- seq(from = -0.28, to = 0.39, by = 0.01)
+alphag_coeff <- seq(from = -0.07, to = -0.01, by = 0.005)
+
+alphal_int <- seq(from = -0.77, to = -0.34, by = 0.01)
+alphal_coeff <- seq(from = -0.02, to = 0.03, by = 0.005)
+
+combinations_alphag <- expand.grid(alphag_int = alphag_int, alphag_coeff = alphag_coeff)
+
+
+alpha_g_preds <- apply(combinations_alphag, 1, function(x) {
+  alpha_int <- x[1]
+  coeff <- x[2]
+  alpha_int + coeff * certainty_seq
+})
+
+
+df_alphag <- data.frame(certainty = rep(certainty_seq, length(alphag_int) * length(alphag_coeff)),
+                      alpha_g_pred = unlist(alpha_g_preds),
+                      alphag_int = rep(combinations_alphag$alphag_int, each = length(certainty_seq)),
+                      alphag_coeff = rep(combinations_alphag$alphag_coeff, each = length(certainty_seq)))
+
+df_alphag_long <- df_alphag %>%
+  pivot_longer(cols = starts_with("alpha_g_pred"), 
+               names_to = "step", 
+               values_to = "value")
+
+
+
+combinations_alphal <- expand.grid(alphal_int = alphal_int, alphal_coeff = alphal_coeff)
+
+
+alpha_l_preds <- apply(combinations_alphal, 1, function(x) {
+  alpha_int <- x[1]
+  coeff <- x[2]
+  alpha_int + coeff * certainty_seq
+})
+
+
+df_alphal <- data.frame(certainty = rep(certainty_seq, length(alphal_int) * length(alphal_coeff)),
+                      alpha_l_pred = unlist(alpha_l_preds),
+                      alphal_int = rep(combinations_alphal$alphal_int, each = length(certainty_seq)),
+                      alphal_coeff = rep(combinations_alphal$alphal_coeff, each = length(certainty_seq)))
+
+df_alphal_long <- df_alphal %>%
+  pivot_longer(cols = starts_with("alpha_l_pred"), 
+               names_to = "step", 
+               values_to = "value")
+
+
+
+df_alphag_long_extreme <- df_alphag_long %>%
+  group_by(certainty) %>%
+  summarise(
+    ymin = min(value),
+    ymax = max(value)
+  ) %>%
+  mutate(group = "Alpha_g")
+
+
+df_alphal_long_extreme <- df_alphal_long %>%
+  group_by(certainty) %>%
+  summarise(
+    ymin = min(value),
+    ymax = max(value)
+  ) %>%
+  mutate(group = "Alpha_l")
+
+df_combined <- bind_rows(df_alphag_long_extreme, df_alphal_long_extreme)
+
+
+
+h4 <- lmer(alpha_g ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+h5 <- lmer(alpha_l ~ age_category + sex + COP + certainty + mean_trial_number + (1|monkey), data = data_norm)
+
+coefs_g <- summary(h4)$coefficients[, "Estimate"]
+
+coefs_l <- summary(h5)$coefficients[, "Estimate"]
+
+
+certainty_seq <- seq(min(data_norm$certainty, na.rm = TRUE), max(data_norm$certainty, na.rm = TRUE), length.out = 100)
+
+
+alpha_g_pred <- coefs_g["(Intercept)"] + coefs_g["certainty"] * certainty_seq
+
+alpha_l_pred <- coefs_l["(Intercept)"] + coefs_l["certainty"] * certainty_seq
+
+
+df_modeles <- data.frame(
+  certainty = certainty_seq,
+  alpha_g_pred = alpha_g_pred,
+  alpha_l_pred = alpha_l_pred
+)
+
+
+ggplot() +
+  geom_ribbon(data = df_combined, aes(x = certainty, ymin = ymin, ymax = ymax, fill = group), alpha = 0.3) +  
+  geom_line(data = df_modeles, aes(x = certainty, y = alpha_g_pred, linetype = "alpha_g"), color = "skyblue", size = 1.2) +  
+  geom_line(data = df_modeles, aes(x = certainty, y = alpha_l_pred, linetype = "alpha_l"), color = "orange", size = 1.2) +  
+  geom_hline(yintercept = 0, size = 0.7) +
+  scale_fill_manual(values = c("Alpha_g" = "skyblue", "Alpha_l" = "orange")) +
+  scale_linetype_manual(values = c("alpha_g" = "dashed", "alpha_l" = "dashed")) +
+  labs(title = "",
+       x = "Normalized value for Certainty",
        y = expression(alpha ~ " predicted value")) +
   theme_classic(base_size = 14) +
   theme(
