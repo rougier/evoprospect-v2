@@ -116,7 +116,6 @@ for (i in 1:nrow(datad_final)) {
     
     datad_final$trial_number[i] <- first_trial$trial_number
     datad_final$last_trial_number[i] <- last_trial$trial_number
-    datad_final$last_work_day[i] <- last_trial$work_day
   } else {
     datad_final$trial_number[i] <- NA
     datad_final$last_trial_number[i] <- NA
