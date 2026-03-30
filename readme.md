@@ -75,7 +75,7 @@ L0 represents the complete set of all lotteries. The script also provides a func
 `hierarchy_vs_PT.py`: This script processes and analyzes Elo scores and reaction times (RT) for monkeys in different experimental settings. It includes functions to compute and visualize the relationship between Elo scores and RTs across various periods
 (static, dynamic, and best trials).
 
-`figS1.ipynb` : This script contain generates all Elo score evolution in time for each individual in the analyse.
+`fig2.ipynb` : This script contain generates all Elo score evolution in time for each individual in the analyse.
 
 ## R files
 
@@ -83,11 +83,13 @@ R files in Figures file are used to transform dataset and plot differents figure
 
 `Data_preprocessing.Rmd`: This script contain processes to transform the dataset and add different variables of interest as age, sex, trial number or COP.
 
-`fig2.Rmd` : This script display violin plot of PT parameters and Elo score in function of individuals.
+`fig3.Rmd` : This script display violin plot of PT parameters and Elo score in function of individuals.
 
-`fig3.Rmd` : This script display the plot for PT parameters and COP in function of Elo score.
+`fig4.Rmd` : This script display the plot for PT parameters and COP in function of Elo score.
 
 `tab1.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, Elo score and trial number.
+
+`figS1.Rmd` : This script display the distribution of the number of days per 1500 periods and trials per day.
 
 `figS3.Rmd` : This script contain the function to compute the mean utility function of all individual and global one.
 
@@ -95,7 +97,17 @@ R files in Figures file are used to transform dataset and plot differents figure
 
 `figS5.Rmd` : This script display individual plot and individual linear regression for PT parameters in function of Elo score.
 
-`figS6.Rmd` : This script display predictive values and intervale confidence of Pt parameters function of Elo score, trial number and COP from LMM models.
+`figS6.Rmd` : This script display predictive values and intervale confidence of Pt parameters function of Elo score, trial number from LMM models.
 
-`tabS1.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, COP and trial number.
+`figS7.Rmd` : This script display predictive values and intervale confidence of Pt parameters function of COP, certainty and trial number from LMM models.
+
+`figS8.Rmd` : This script display plots of PT parameters with sexe.
+
+`figS9.Rmd` : This script display plots of PT parameters with age categories.
+
+`tabS1.Rmd` : This script create the summary table for individual group informations.
+
+`tabS2.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, COP and trial number.
+
+`tabS3.Rmd` : This script contain LMM model for PT parameters in function of variable of interset as age, sex, ordinal rank and trial number.
 
