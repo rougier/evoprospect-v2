@@ -1,7 +1,7 @@
 ---
-title: "Tab1"
+title: "tab1"
 output: html_document
-date: "2025-03-13"
+date: "2026-01-29"
 ---
 
 #Table 1 : LMM RESULTS
@@ -10,12 +10,13 @@ date: "2025-03-13"
 ```{r}
 
 # Scaling to have appropriate estimates for the different factors
+
 data_norm <- filtered_data %>%
   mutate(
     elo = scale(elo),
-    mean_trial_number = scale(log(mean_trial_number)),
-    COP = scale(COP)
+    mean_trial_number = scale(log(mean_trial_number))
   )
+
 
 # Initiate models for PT parameters
 h1 <- lmer(rho_g ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (1|monkey), data = data_norm)
@@ -27,6 +28,4 @@ h5 <- lmer(lambda_ ~ age_category + sex + elo + I(elo^2) + mean_trial_number + (
 # Display model results
 tab_model(h1, h2, h3, h4, h5)
 
-
 ```
-
