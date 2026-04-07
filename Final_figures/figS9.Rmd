@@ -1,0 +1,177 @@
+---
+title: "figS9"
+output: html_document
+date: "2026-01-26"
+---
+
+# FIGURE S9 : PT PARAMETERS ~ Age
+# Display plots of PT parameters with Age categories. Each point represent a Pt parameters during a particular 1500 trial period for an individual
+
+```{r}
+filtered_data <- filtered_data %>%
+  mutate(age_category = factor(age_category, 
+                                levels = c("juvenile", "subadult", "adult")))
+
+
+mean_data <- filtered_data %>%
+  group_by(monkey, age_category, sex) %>%
+  summarise(
+    mean_rho_g = mean(rho_g, na.rm = TRUE),
+    mean_rho_l = mean(rho_l, na.rm = TRUE),
+    mean_elo   = mean(elo, na.rm = TRUE),
+    mean_alpha_graw = mean(alpha_graw, na.rm = TRUE),
+    mean_alpha_lraw = mean(alpha_lraw, na.rm = TRUE),
+    mean_lambda = mean(lambdaraw, na.rm = TRUE),
+    mean_COP = mean(COP, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_rho_g)) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.8) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  labs(x = "Age category", y = expression(rho["+"] ~ "(risk attitude in losses)")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-1, 1) +
+  scale_color_manual(values = c("male" = "darkblue", "female" = "lightblue")) +
+  annotate("text", x = 2, y = 1, label = expression(italic("risk aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = -1, label = expression(italic("risk seeking")), color = "black", hjust = 1, size = 8)
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_rho_l)) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.8) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  labs(x = "Age category", y = expression(rho["-"] ~ "(risk attitude in losses)")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-1, 1) +
+  scale_color_manual(values = c("male" = "darkorange1", "female" = "darkgoldenrod1")) +
+  annotate("text", x = 2, y = 1, label = expression(italic("risk aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = -1, label = expression(italic("risk seeking")), color = "black", hjust = 1, size = 8)
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_alpha_graw)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(x = "Age category", y = expression(alpha["+"] ~ "(probability distortion in gains)")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-1, 1) +
+  scale_color_manual(values = c("male" = "darkblue", "female" = "lightblue")) +
+  annotate("text", x = 2, y = 10, label = expression(italic("S shape")), color = "black", hjust = 1, size = 8)   +
+  
+  annotate("text", x = 2, y = 0.1, label = expression(italic("inverted S shape")), color = "black", hjust = 1, size = 8)   +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_alpha_lraw)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(x = "Age category", y = expression(alpha["-"] ~ "(probability distortion in losses)")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-1, 1) +
+  scale_color_manual(values = c("male" = "darkorange1", "female" = "darkgoldenrod1")) +
+  annotate("text", x = 2, y = 10, label = expression(italic("S shape")), color = "black", hjust = 1, size = 8)   +
+  
+  annotate("text", x = 2, y = 0.1, label = expression(italic("inverted S shape")), color = "black", hjust = 1, size = 8)   +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_lambda)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(x = "Age category", y = expression(lambda ~ "(loss aversion)")) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-1, 1) +
+  scale_color_manual(values = c("male" = "darkred", "female" = "salmon")) +
+  annotate("text", x = 2, y = 10, label = expression(italic("loss aversion")), color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = 0.1, label = expression(italic("loss seeking")), color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10.1)
+  )
+
+
+ggplot(mean_data, aes(x = age_category, y = mean_COP)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  geom_jitter(
+    aes(color = sex),
+    width = 0.2, alpha = 0.8, size = 5
+  ) +
+  labs(x = "Age category", y = "Conflict Outcome Predictability") +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(-0, 1) +
+  scale_color_manual(values = c("male" = "darkgreen", "female" = "lightgreen"))
+
+
+
+```

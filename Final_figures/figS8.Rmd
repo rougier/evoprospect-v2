@@ -1,0 +1,232 @@
+---
+title: "figs10"
+output: html_document
+date: "2026-01-26"
+---
+
+# FIGURE S9 : PT PARAMETERS ~ Sexe
+# Display plots of PT parameters with Sexe. Each point represent a Pt parameters during a particular 1500 trial period for an individual
+
+```{r}
+# Vérifier l'ordre des catégories
+filtered_data <- filtered_data %>%
+  mutate(age_category = factor(age_category, 
+                                levels = c("juvenile", "subadult", "adult")))
+
+mean_data <- filtered_data %>%
+  group_by(monkey, sex, age_category) %>%
+  summarise(
+    mean_rho_g = mean(rho_g, na.rm = TRUE),
+    mean_rho_l = mean(rho_l, na.rm = TRUE),
+    mean_elo   = mean(elo, na.rm = TRUE),
+    mean_alpha_graw = mean(alpha_graw, na.rm = TRUE),
+    mean_alpha_lraw = mean(alpha_lraw, na.rm = TRUE),
+    mean_lambda = mean(lambdaraw, na.rm = TRUE),
+    mean_COP = mean(COP, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Graphique
+ggplot(mean_data, aes(x = sex, y = mean_rho_g)) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.8) +
+  geom_boxplot(outlier.shape = NA, color = "black") +
+  # on mappe la couleur à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  labs(
+    x = "Sexe",
+    y = expression(rho["+"] ~ "(risk attitude in gains)"),
+    color = "Age Category"
+  ) +
+  scale_color_manual(
+    values = c("juvenile" = "#a6cee3",   # bleu clair
+               "subadult" = "#1f78b4",   # bleu moyen
+               "adult"    = "#08306b")   # bleu foncé
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.title = element_text(size = 28),
+    legend.text = element_text(size = 24)
+  ) +
+  ylim(-1, 1) +
+  annotate("text", x = 2, y = 1, label = expression(italic("risk aversion")),
+           color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = -1, label = expression(italic("risk seeking")),
+           color = "black", hjust = 1, size = 8)
+
+
+
+# Graphique
+ggplot(mean_data, aes(x = sex, y = mean_rho_l)) +
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.8) +
+  geom_boxplot(outlier.shape = NA, color = "black") +
+  # couleur liée à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  labs(
+    x = "Sexe",
+    y = expression(rho["-"] ~ "(risk attitude in losses)"),
+    color = "Age Category"
+  ) +
+  # dégradé orange clair -> foncé (sans rouge)
+  scale_color_manual(
+    values = c("juvenile" = "#fee6ce",  # orange très clair
+               "subadult" = "#fdae6b",  # orange moyen
+               "adult"    = "#e6550d")  # orange foncé
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.title = element_text(size = 28),
+    legend.text = element_text(size = 24)
+  ) +
+  ylim(-1, 1) +
+  annotate("text", x = 2, y = 1, label = expression(italic("risk aversion")),
+           color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = -1, label = expression(italic("risk seeking")),
+           color = "black", hjust = 1, size = 8)
+
+
+
+
+ggplot(mean_data, aes(x = sex, y = mean_alpha_graw)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  # couleur liée à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(
+    x = "Sexe",
+    y = expression(alpha["+"] ~ "(probability distortion in gains)"),
+    color = "Age Category"
+  ) +
+  # palette bleu clair -> foncé
+  scale_color_manual(
+    values = c("juvenile" = "#a6cee3",  # bleu clair
+               "subadult" = "#1f78b4",  # bleu moyen
+               "adult"    = "#08306b")  # bleu foncé
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.title = element_text(size = 28),
+    legend.text = element_text(size = 24)
+  ) +
+  annotate("text", x = 2, y = 10,
+           label = expression(italic("S shape")),
+           color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = 0.1,
+           label = expression(italic("inverted S shape")),
+           color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+ggplot(mean_data, aes(x = sex, y = mean_alpha_lraw)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  # couleur liée à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(
+    x = "Sexe",
+    y = expression(alpha["-"] ~ "(probability distortion in losses)"),
+    color = "Age Category"
+  ) +
+  # palette orange clair -> foncé (sans rouge)
+  scale_color_manual(
+    values = c("juvenile" = "#fee6ce",  # orange très clair
+               "subadult" = "#fdae6b",  # orange moyen
+               "adult"    = "#e6550d")  # orange soutenu
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.title = element_text(size = 28),
+    legend.text = element_text(size = 24)
+  ) +
+  annotate("text", x = 2, y = 10,
+           label = expression(italic("S shape")),
+           color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = 0.1,
+           label = expression(italic("inverted S shape")),
+           color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10)
+  )
+
+
+
+
+ggplot(mean_data, aes(x = sex, y = mean_lambda)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  # couleur liée à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  geom_hline(yintercept = 1, color = "black", linewidth = 0.8) +
+  labs(
+    x = "Sexe",
+    y = expression(lambda ~ "(loss aversion)"),
+    color = "Age Category"
+  ) +
+  # palette rouge clair -> foncé
+  scale_color_manual(
+    values = c("juvenile" = "#fee0d2",  # rouge très clair
+               "subadult" = "#fc9272",  # rouge moyen
+               "adult"    = "#de2d26")  # rouge soutenu
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  annotate("text", x = 2, y = 10,
+           label = expression(italic("loss aversion")),
+           color = "black", hjust = 1, size = 8) +
+  annotate("text", x = 2, y = 0.1,
+           label = expression(italic("loss seeking")),
+           color = "black", hjust = 1, size = 8) +
+  scale_y_log10(
+    breaks = c(0.1, 0.5, 1, 2, 5, 10),
+    limits = c(0.1, 10.1)
+  )
+
+
+
+ggplot(mean_data, aes(x = sex, y = mean_COP)) +
+  geom_boxplot(outlier.shape = NA, color = "black", fill = "white") +
+  # couleur liée à age_category
+  geom_jitter(aes(color = age_category), width = 0.2, alpha = 0.8, size = 5) +
+  labs(
+    x = "Sexe",
+    y = "Conflict Outcome Predictability",
+    color = "Age Category"
+  ) +
+  # palette vert clair -> foncé
+  scale_color_manual(
+    values = c("juvenile" = "#e5f5e0",  # vert très clair
+               "subadult" = "#a1d99b",  # vert moyen
+               "adult"    = "#31a354")  # vert soutenu
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 36),
+    axis.title.y = element_text(size = 36),
+    axis.text = element_text(size = 30),
+    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 28)
+  ) +
+  ylim(0, 1)
+```
+

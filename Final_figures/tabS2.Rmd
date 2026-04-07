@@ -1,0 +1,28 @@
+---
+title: "tabs2"
+output: html_document
+date: "2026-01-29"
+---
+
+#Supplementary Table 2 : LMM RESULTS
+# Display LMM results for PT parameters in function of age, sex, COP and the number trial performed.
+
+```{r}
+# Scaling to have appropriate estimates for the different factors
+data_norm <- filtered_data %>%
+  mutate(
+    mean_trial_number = scale(log(mean_trial_number)),
+    COP = scale(COP)
+  )
+
+# Initiate models for PT parameters
+h1 <- lmer(rho_g ~ age_category + sex + COP + mean_trial_number + (1 |monkey), data = data_norm)
+h2 <- lmer(rho_l ~ age_category + sex + COP + mean_trial_number + (1 |monkey), data = data_norm)
+h3 <- lmer(alpha_g ~ age_category + sex + COP + mean_trial_number + (1 |monkey), data = data_norm)
+h4 <- lmer(alpha_l ~ age_category + sex + COP + mean_trial_number + (1 |monkey), data = data_norm)
+h5 <- lmer(lambda_ ~ age_category + sex + COP + mean_trial_number + (1 |monkey), data = data_norm)
+
+# Display model results
+tab_model(h1, h2, h3, h4, h5)
+```
+

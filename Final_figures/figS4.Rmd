@@ -1,0 +1,167 @@
+?se---
+title: "FigS4"
+output: html_document
+date: "2025-03-13"
+---
+
+# Fig S4 : Probability Distortion Function in Gains
+# Display the probability distortion function mean for each individual and the mean of all individual means in gains and losses
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- Fonction de distorsion de probabilité ---
+prelec_function <- function(P, alpha) {
+  exp(-(-log(P))^alpha)
+}
+
+P_values <- seq(0.001, 1, length.out = 1000)
+
+# --- Moyennes individuelles par singe et classe ---
+individual_params <- filtered_data %>%
+  group_by(monkey, elo_class) %>%
+  summarise(
+    mean_alpha = mean(alpha_graw, na.rm = TRUE),  # α+
+    .groups = "drop"
+  )
+
+individual_means_df <- individual_params %>%
+  rowwise() %>%
+  mutate(
+    distortion_values = list(sapply(P_values, prelec_function, alpha = mean_alpha)),
+    P_value = list(P_values)
+  ) %>%
+  unnest(cols = c(distortion_values, P_value))
+
+# --- Moyennes globales par classe ---
+global_means <- filtered_data %>%
+  group_by(elo_class) %>%
+  summarise(
+    global_alpha = mean(alpha_graw, na.rm = TRUE),  # α+
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    distortion_values = list(sapply(P_values, prelec_function, alpha = global_alpha)),
+    P_value = list(P_values)
+  ) %>%
+  unnest(cols = c(distortion_values, P_value)) %>%
+  mutate(color = "blue")
+
+# --- Texte pour les moyennes globales α+ (affiché sur les panels) ---
+annotation_data <- global_means %>%
+  distinct(elo_class, global_alpha) %>%
+  mutate(
+    label = sprintf("α+=%.2f", global_alpha)
+  )
+
+# --- Graphique avec panels par classe ---
+ggplot() +
+  geom_line(data = individual_means_df, 
+            aes(x = P_value, y = distortion_values, group = monkey), 
+            color = "darkgray", alpha = 1, size = 0.7) +
+  geom_line(data = global_means, 
+            aes(x = P_value, y = distortion_values, color = "skyblue"), 
+            size = 1.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black", size = 0.5) +
+  geom_text(
+    data = annotation_data,
+    aes(x = 0.8, y = 0.1, label = label),  # ajuste x et y selon ton graph
+    hjust = 1, vjust = 0, size = 5, color = "black", fontface = "italic"
+  ) +
+  scale_color_identity() +
+  facet_wrap(~elo_class, scales = "fixed", nrow = 1) +
+  labs(x = "p", y = "w(p)") +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 26),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 16),
+    axis.text.y = element_text(size = 16),
+    strip.text = element_text(size = 16, face = "bold"),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  )
+
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- Fonction de distorsion pour les pertes ---
+prelec_function <- function(P, alpha) {
+  exp(-(-log(P))^alpha)
+}
+
+P_values <- seq(0.001, 1, length.out = 1000)
+
+# --- Moyennes individuelles par singe et classe ---
+individual_params <- filtered_data %>%
+  group_by(monkey, elo_class) %>%
+  summarise(
+    mean_alpha = mean(alpha_lraw, na.rm = TRUE),  # α-
+    .groups = "drop"
+  )
+
+individual_means_df <- individual_params %>%
+  rowwise() %>%
+  mutate(
+    distortion_values = list(sapply(P_values, prelec_function, alpha = mean_alpha)),
+    P_value = list(P_values)
+  ) %>%
+  unnest(cols = c(distortion_values, P_value))
+
+# --- Moyennes globales par classe ---
+global_means <- filtered_data %>%
+  group_by(elo_class) %>%
+  summarise(
+    global_alpha = mean(alpha_lraw, na.rm = TRUE),  # α-
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    distortion_values = list(sapply(P_values, prelec_function, alpha = global_alpha)),
+    P_value = list(P_values)
+  ) %>%
+  unnest(cols = c(distortion_values, P_value)) %>%
+  mutate(color = "orange")
+
+# --- Texte pour les moyennes globales α- (affiché sur les panels) ---
+annotation_data <- global_means %>%
+  distinct(elo_class, global_alpha) %>%
+  mutate(
+    label = sprintf("α-=%.2f", global_alpha)
+  )
+
+# --- Graphique avec panels par classe ---
+ggplot() +
+  geom_line(data = individual_means_df, 
+            aes(x = P_value, y = distortion_values, group = monkey), 
+            color = "darkgray", alpha = 1, size = 0.7) +
+  geom_line(data = global_means, 
+            aes(x = P_value, y = distortion_values, color = color), 
+            size = 1.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black", size = 0.5) +
+  geom_text(
+    data = annotation_data,
+    aes(x = 0.8, y = 0.1, label = label),  # ajuste x et y si besoin
+    hjust = 1, vjust = 0, size = 5, color = "black", fontface = "italic"
+  ) +
+  scale_color_identity() +
+  facet_wrap(~elo_class, scales = "fixed", nrow = 1) +
+  labs(x = "p", y = "w(p)") +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 26),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 16),
+    axis.text.y = element_text(size = 16),
+    strip.text = element_text(size = 16, face = "bold"),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  )
+
+```
+

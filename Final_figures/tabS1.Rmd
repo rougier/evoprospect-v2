@@ -1,0 +1,144 @@
+---
+title: "tabS1"
+output: html_document
+date: "2026-03-30"
+---
+
+# Create the summary table for individual group informations
+
+```{r}
+library(data.table)
+library(lubridate)
+
+# data.table conversion
+setDT(filtered_data)
+setDT(alldata)
+
+# Dates conversion
+filtered_data[, date_start := ymd_hms(date_start)]
+filtered_data[, date_end   := ymd_hms(date_end)]
+alldata[, datetime := ymd_hms(datetime)]
+
+
+
+
+alldata[, datetime_start := datetime]
+alldata[, datetime_end   := datetime]
+
+setkey(filtered_data, subject_id, date_start, date_end)
+setkey(alldata, subject_id, datetime_start, datetime_end)
+
+alldata_filtered <- foverlaps(
+  x = alldata[, .(subject_id, datetime_start, datetime_end, sex, age_category, age)],
+  y = filtered_data[, .(subject_id, date_start, date_end)],
+  by.x = c("subject_id", "datetime_start", "datetime_end"),
+  by.y = c("subject_id", "date_start", "date_end"),
+  type = "within",
+  nomatch = 0L
+)
+
+alldata_filtered[, date := as.Date(datetime_start)]
+
+per_individual <- alldata_filtered[
+  , .(
+      n_trials_total = .N,
+      n_days = uniqueN(date),
+      trials_per_day = .N / uniqueN(date),
+      age = mean(age, na.rm = TRUE)
+    ),
+  by = .(subject_id, sex, age_category)
+]
+
+# recapitulative table
+summary_table <- per_individual[
+  , .(
+      n_individuals = uniqueN(subject_id),
+      total_trials = sum(n_trials_total),
+      mean_trials_per_individual = mean(n_trials_total),
+      sd_trials_per_individual = sd(n_trials_total),
+      mean_trials_per_day = mean(trials_per_day),
+      sd_trials_per_day = sd(trials_per_day),
+      mean_age = mean(age, na.rm = TRUE),
+      sd_age = sd(age, na.rm = TRUE)
+    ),
+  by = .(sex, age_category)
+]
+
+summary_table
+
+
+```
+
+```{r}
+library(data.table)
+library(gt)
+
+summary_table[, sex := fifelse(sex == 1, "Males", "Females")]
+summary_table[, age_category := factor(age_category,
+                                       levels = c("juvenile", "subadult", "adult"),
+                                       labels = c("Juvenile", "Subadult", "Adult"))]
+
+summary_table[, mean_trials_indiv := sprintf("%.1f ± %.1f",
+                                             mean_trials_per_individual, sd_trials_per_individual)]
+summary_table[, mean_trials_day := sprintf("%.2f ± %.2f",
+                                           mean_trials_per_day, sd_trials_per_day)]
+summary_table[, mean_age_fmt := sprintf("%.1f ± %.1f",
+                                        mean_age, sd_age)]
+
+table_pub <- summary_table[, .(
+  Sex = sex,
+  Age_Category = age_category,
+  `N individuals` = n_individuals,
+  `Total trials` = total_trials,
+  `Trials / individual (mean ± SD)` = mean_trials_indiv,
+  `Trials / day (mean ± SD)` = mean_trials_day,
+  `Age (mean ± SD)` = mean_age_fmt
+)][order(Sex, factor(Age_Category, levels = c("Juvenile", "Subadult", "Adult")))]
+
+
+gt_table <- table_pub %>%
+  gt(rowname_col = "Age_Category", groupname_col = "Sex") %>%
+  tab_header(
+    title = md("**Trials Summary by Sex and Age Category**")
+  ) %>%
+  cols_label(
+    `N individuals` = md("**N**"),
+    `Total trials` = md("**Total Trials**"),
+    `Trials / individual (mean ± SD)` = md("**Trials per Individual**"),
+    `Trials / day (mean ± SD)` = md("**Trials per Day**"),
+    `Age (mean ± SD)` = md("**Age**")
+  ) %>%
+  fmt_missing(everything(), missing_text = "-") %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = list(
+      cells_column_labels(everything()),
+      cells_row_groups()                 
+    )
+  ) %>%
+  tab_style(
+    style = cell_borders(sides = c("top", "bottom"), color = "black", weight = px(1)),
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = cell_borders(sides = "bottom", color = "black", weight = px(2)),
+    locations = cells_row_groups()
+  ) %>%
+  tab_options(
+    table.font.size = 14,
+    table.align = "center",
+    data_row.padding = px(5),
+    heading.align = "center",
+    row_group.as_column = FALSE,
+    column_labels.border.top.color = "black",
+    column_labels.border.bottom.color = "black",
+    column_labels.border.bottom.width = px(2),
+    table.border.top.color = "black",
+    table.border.bottom.color = "black",
+    table.border.top.width = px(2),
+    table.border.bottom.width = px(2)
+  )
+
+gt_table
+```
+
